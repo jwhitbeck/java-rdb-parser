@@ -123,7 +123,7 @@ public class RdbParserTest {
     try (RdbParser p = openTestParser()) {
       // DB_SELECTOR 0
       Entry t = p.readNext();
-      Assert.assertEquals(Entry.DB_SELECTOR, t.getType());
+      Assert.assertEquals(Entry.DB_SELECT, t.getType());
       DbSelect dbSelect = (DbSelect)t;
       Assert.assertEquals(0, dbSelect.getId());
       // foo:bar
@@ -135,7 +135,7 @@ public class RdbParserTest {
       Assert.assertEquals("baz", str(v.getValue()));
       // DB_SELECTOR 1
       t = p.readNext();
-      Assert.assertTrue(t.getType() == Entry.DB_SELECTOR);
+      Assert.assertTrue(t.getType() == Entry.DB_SELECT);
       dbSelect = (DbSelect)t;
       Assert.assertEquals(1, dbSelect.getId());
       // foo:baz

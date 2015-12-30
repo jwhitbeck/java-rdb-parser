@@ -10,7 +10,7 @@ public class DbSelect extends Entry {
 
   @Override
   public int getType() {
-    return Entry.DB_SELECTOR;
+    return Entry.DB_SELECT;
   }
 
   public long getId() {
