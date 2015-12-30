@@ -2,7 +2,7 @@ package net.whitbeck.rdb_parser;
 
 import java.util.List;
 
-public abstract class KeyValuePair extends Entry {
+public final class KeyValuePair extends Entry {
 
   public static final int
     VALUE = 0,
@@ -21,12 +21,23 @@ public abstract class KeyValuePair extends Entry {
   private final boolean hasExpiry;
   private final byte[] key;
   private final int valueType;
+  private List<byte[]> values;
+  private LazyList lazyList;
 
-  protected KeyValuePair(int valueType, byte [] ts, byte[] key) {
+  KeyValuePair(int valueType, byte [] ts, byte[] key, List<byte[]> values) {
     this.valueType = valueType;
     this.ts = ts;
     this.key = key;
     this.hasExpiry = ts != null;
+    this.values = values;
+  }
+
+  KeyValuePair(int valueType, byte [] ts, byte[] key, LazyList lazyList) {
+    this.valueType = valueType;
+    this.ts = ts;
+    this.key = key;
+    this.hasExpiry = ts != null;
+    this.lazyList = lazyList;
   }
 
   public int getValueType() {
@@ -81,11 +92,11 @@ public abstract class KeyValuePair extends Entry {
     return key;
   }
 
-  public byte[] getValue() {
-    throw new UnsupportedOperationException();
-  }
-
   public List<byte[]> getValues() {
-    throw new UnsupportedOperationException();
+    if (values == null) {
+      values = lazyList.get();
+      lazyList = null;
+    }
+    return values;
   }
 }

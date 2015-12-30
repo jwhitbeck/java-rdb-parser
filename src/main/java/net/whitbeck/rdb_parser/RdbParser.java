@@ -9,6 +9,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class RdbParser implements AutoCloseable {
@@ -285,11 +286,11 @@ public class RdbParser implements AutoCloseable {
     }
   }
 
-  private KeyValue readValue(byte[] ts, byte[] key) throws IOException {
-    return new KeyValue(ts, key, readStringEncoded());
+  private KeyValuePair readValue(byte[] ts, byte[] key) throws IOException {
+    return new KeyValuePair(KeyValuePair.VALUE, ts, key, Arrays.asList(readStringEncoded()));
   }
 
-  private KeyValues readList(byte[] ts, byte[] key) throws IOException {
+  private KeyValuePair readList(byte[] ts, byte[] key) throws IOException {
     long len = readLength();
     if (len > Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Lists with more than " + Integer.MAX_VALUE +
@@ -300,10 +301,10 @@ public class RdbParser implements AutoCloseable {
     for (int i=0; i<size; ++i) {
       list.add(readStringEncoded());
     }
-    return new KeyValues(KeyValuePair.LIST, ts, key, list);
+    return new KeyValuePair(KeyValuePair.LIST, ts, key, list);
   }
 
-  private KeyValues readSet(byte[] ts, byte[] key) throws IOException {
+  private KeyValuePair readSet(byte[] ts, byte[] key) throws IOException {
     long len = readLength();
     if (len > Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Sets with more than " + Integer.MAX_VALUE +
@@ -314,10 +315,10 @@ public class RdbParser implements AutoCloseable {
     for (int i=0; i<size; ++i) {
       set.add(readStringEncoded());
     }
-    return new KeyValues(KeyValuePair.SET, ts, key, set);
+    return new KeyValuePair(KeyValuePair.SET, ts, key, set);
   }
 
-  private KeyValues readSortedSet(byte[] ts, byte[] key) throws IOException {
+  private KeyValuePair readSortedSet(byte[] ts, byte[] key) throws IOException {
     long len = readLength();
     if (len > (Integer.MAX_VALUE / 2)) {
       throw new IllegalArgumentException("SortedSets with more than " + (Integer.MAX_VALUE / 2) +
@@ -329,10 +330,10 @@ public class RdbParser implements AutoCloseable {
       valueScoresPairs.add(readStringEncoded());
       valueScoresPairs.add(readDoubleString());
     }
-    return new KeyValues(KeyValuePair.SORTED_SET, ts, key, valueScoresPairs);
+    return new KeyValuePair(KeyValuePair.SORTED_SET, ts, key, valueScoresPairs);
   }
 
-  private KeyValues readHash(byte[] ts, byte[] key) throws IOException {
+  private KeyValuePair readHash(byte[] ts, byte[] key) throws IOException {
     long len = readLength();
     if (len > (Integer.MAX_VALUE / 2)) {
       throw new IllegalArgumentException("Hashes with more than " + (Integer.MAX_VALUE / 2) +
@@ -344,24 +345,24 @@ public class RdbParser implements AutoCloseable {
       kvPairs.add(readStringEncoded());
       kvPairs.add(readStringEncoded());
     }
-    return new KeyValues(KeyValuePair.HASH, ts, key, kvPairs);
+    return new KeyValuePair(KeyValuePair.HASH, ts, key, kvPairs);
   }
 
-  private KeyValues readZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValues(KeyValuePair.ZIPLIST, ts, key, new ZipList(readStringEncoded()));
+  private KeyValuePair readZipList(byte[] ts, byte[] key) throws IOException {
+    return new KeyValuePair(KeyValuePair.ZIPLIST, ts, key, new ZipList(readStringEncoded()));
   }
 
-  private KeyValues readIntSet(byte[] ts, byte[] key) throws IOException {
-    return new KeyValues(KeyValuePair.INTSET, ts, key, new IntSet(readStringEncoded()));
+  private KeyValuePair readIntSet(byte[] ts, byte[] key) throws IOException {
+    return new KeyValuePair(KeyValuePair.INTSET, ts, key, new IntSet(readStringEncoded()));
   }
 
-  private KeyValues readSortedSetAsZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValues(KeyValuePair.SORTED_SET_AS_ZIPLIST, ts, key,
+  private KeyValuePair readSortedSetAsZipList(byte[] ts, byte[] key) throws IOException {
+    return new KeyValuePair(KeyValuePair.SORTED_SET_AS_ZIPLIST, ts, key,
                          new SortedSetAsZipList(readStringEncoded()));
   }
 
-  private KeyValues readHashmapAsZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValues(KeyValuePair.HASHMAP_AS_ZIPLIST, ts, key, new ZipList(readStringEncoded()));
+  private KeyValuePair readHashmapAsZipList(byte[] ts, byte[] key) throws IOException {
+    return new KeyValuePair(KeyValuePair.HASHMAP_AS_ZIPLIST, ts, key, new ZipList(readStringEncoded()));
   }
 
   @Override
