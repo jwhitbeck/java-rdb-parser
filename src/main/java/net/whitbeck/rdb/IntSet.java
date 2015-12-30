@@ -1,6 +1,8 @@
 package net.whitbeck.rdb;
 
 import java.nio.charset.Charset;
+import java.util.List;
+import java.util.ArrayList;
 
 final class IntSet implements LazyList {
 
@@ -29,32 +31,32 @@ final class IntSet implements LazyList {
     return readIntAt(4);
   }
 
-  private byte[][] read16BitInts(int n) {
-    byte[][] ints = new byte[n][];
+  private List<byte[]> read16BitInts(int n) {
+    List<byte[]> ints = new ArrayList<byte[]>(n);
     int pos = 8; // skip the encoding and num ints
     for (int i=0; i<n; ++i) {
       long l = ((((long)envelope[pos++] & 0xff) << 0) |
                 (((long)envelope[pos++])        << 8));;
-      ints[i] = String.valueOf(l).getBytes(ASCII);
+      ints.add(String.valueOf(l).getBytes(ASCII));
     }
     return ints;
   }
 
-  private byte[][] read32BitInts(int n) {
-    byte[][] ints = new byte[n][];
+  private List<byte[]> read32BitInts(int n) {
+    List<byte[]> ints = new ArrayList<byte[]>(n);
     int pos = 8; // skip the encoding and num ints
     for (int i=0; i<n; ++i) {
       long l = ((((long)envelope[pos++] & 0xff) <<  0) |
                 (((long)envelope[pos++] & 0xff) <<  8) |
                 (((long)envelope[pos++] & 0xff) << 16) |
                 (((long)envelope[pos++])        << 24));;
-      ints[i] = String.valueOf(l).getBytes(ASCII);
+      ints.add(String.valueOf(l).getBytes(ASCII));
     }
     return ints;
   }
 
-  private byte[][] read64BitInts(int n) {
-    byte[][] ints = new byte[n][];
+  private List<byte[]> read64BitInts(int n) {
+    List<byte[]> ints = new ArrayList<byte[]>(n);
     int pos = 8; // skip the encoding and num ints
     for (int i=0; i<n; ++i) {
       long l = ((((long)envelope[pos++] & 0xff) <<  0) |
@@ -65,13 +67,13 @@ final class IntSet implements LazyList {
                 (((long)envelope[pos++] & 0xff) << 40) |
                 (((long)envelope[pos++] & 0xff) << 48) |
                 (((long)envelope[pos++])        << 56));
-      ints[i] = String.valueOf(l).getBytes(ASCII);
+      ints.add(String.valueOf(l).getBytes(ASCII));
     }
     return ints;
   }
 
   @Override
-  public byte[][] get() {
+  public List<byte[]> get() {
     int encoding = getEncoding();
     int n = getNumInts();
     switch (encoding) {

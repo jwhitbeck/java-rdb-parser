@@ -4,13 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.FileSystems;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -235,10 +235,10 @@ public class RdbParserTest {
       p.readNext(); // skip DB_SELECTOR
       KeyValues vs = (KeyValues)(p.readNext());
       Assert.assertTrue(KeyValuePair.LIST == vs.getValueType());
-      byte[][] list = vs.getValues();
-      Assert.assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", str(list[0]));
-      Assert.assertEquals("1234", str(list[1]));
-      Assert.assertEquals("bar", str(list[2]));
+      List<byte[]> list = vs.getValues();
+      Assert.assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", str(list.get(0)));
+      Assert.assertEquals("1234", str(list.get(1)));
+      Assert.assertEquals("bar", str(list.get(2)));
     }
   }
 
@@ -281,11 +281,9 @@ public class RdbParserTest {
       p.readNext(); // skip DB_SELECTOR
       KeyValues vs = (KeyValues)(p.readNext());
       Assert.assertTrue(KeyValuePair.SORTED_SET == vs.getValueType());
-      byte[][] valueScoresPairs = vs.getValues();
       Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
-      for (int i=0; i<valueScoresPairs.length; i+= 2) {
-        parsedValueScoreMap.put(str(valueScoresPairs[i]),
-                                Double.parseDouble(str(valueScoresPairs[i+1])));
+      for (Iterator<byte[]> i = vs.getValues().iterator(); i.hasNext(); ) {
+        parsedValueScoreMap.put(str(i.next()), Double.parseDouble(str(i.next())));
       }
       Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
     }
@@ -309,10 +307,9 @@ public class RdbParserTest {
       p.readNext(); // skip DB_SELECTOR
       KeyValues vs = (KeyValues)(p.readNext());
       Assert.assertTrue(KeyValuePair.HASH == vs.getValueType());
-      byte[][] kvPairs = vs.getValues();
       Map<String,String> parsedMap = new HashMap<String,String>();
-      for (int i=0; i<kvPairs.length; i+=2) {
-        parsedMap.put(str(kvPairs[i]), str(kvPairs[i+1]));
+      for (Iterator<byte[]> i = vs.getValues().iterator(); i.hasNext(); ) {
+        parsedMap.put(str(i.next()), str(i.next()));
       }
       Assert.assertEquals(map, parsedMap);
     }
@@ -429,11 +426,9 @@ public class RdbParserTest {
       p.readNext(); // skip DB_SELECTOR
       KeyValues vs = (KeyValues)(p.readNext());
       Assert.assertTrue(KeyValuePair.SORTED_SET_AS_ZIPLIST == vs.getValueType());
-      byte[][] valueScoresPairs = vs.getValues();
       Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
-      for (int i=0; i<valueScoresPairs.length; i+=2) {
-        parsedValueScoreMap.put(str(valueScoresPairs[i]),
-                                Double.parseDouble(str(valueScoresPairs[i+1])));
+      for (Iterator<byte[]> i = vs.getValues().iterator(); i.hasNext(); ){
+        parsedValueScoreMap.put(str(i.next()), Double.parseDouble(str(i.next())));
       }
       Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
     }
@@ -454,10 +449,9 @@ public class RdbParserTest {
       p.readNext(); // skip DB_SELECTOR
       KeyValues vs = (KeyValues)(p.readNext());
       Assert.assertTrue(KeyValuePair.HASHMAP_AS_ZIPLIST == vs.getValueType());
-      byte[][] kvPairs = vs.getValues();
       Map<String,String> parsedMap = new HashMap<String,String>();
-      for (int i=0; i<kvPairs.length; i+=2) {
-        parsedMap.put(str(kvPairs[i]), str(kvPairs[i+1]));
+      for (Iterator<byte[]> i = vs.getValues().iterator(); i.hasNext(); ) {
+        parsedMap.put(str(i.next()), str(i.next()));
       }
       Assert.assertEquals(map, parsedMap);
     }

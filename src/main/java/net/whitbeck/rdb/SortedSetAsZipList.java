@@ -2,6 +2,8 @@ package net.whitbeck.rdb;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.List;
+import java.util.ListIterator;
 
 class SortedSetAsZipList extends ZipList {
 
@@ -17,16 +19,17 @@ class SortedSetAsZipList extends ZipList {
   }
 
   @Override
-  public byte[][] get() {
-    byte[][] values = super.get();
+  public List<byte[]> get() {
+    List<byte[]> values = super.get();
     // fix the "+inf", "-inf", and "nan" values
-    for (int i=1; i<values.length; i+=2) {
-      if (Arrays.equals(values[i], POS_INF_BYTES)) {
-        values[i] = DoubleBytes.POSITIVE_INFINITY;
-      } else if (Arrays.equals(values[i], NEG_INF_BYTES)) {
-        values[i] = DoubleBytes.NEGATIVE_INFINITY;
-      } else if (Arrays.equals(values[i], NAN_BYTES)) {
-        values[i] = DoubleBytes.NaN;
+    for (ListIterator<byte[]> i = values.listIterator(); i.hasNext(); ) {
+      byte[] val = i.next();
+      if (Arrays.equals(val, POS_INF_BYTES)) {
+        i.set(DoubleBytes.POSITIVE_INFINITY);
+      } else if (Arrays.equals(val, NEG_INF_BYTES)) {
+        i.set( DoubleBytes.NEGATIVE_INFINITY);
+      } else if (Arrays.equals(val, NAN_BYTES)) {
+        i.set(DoubleBytes.NaN);
       }
     }
     return values;

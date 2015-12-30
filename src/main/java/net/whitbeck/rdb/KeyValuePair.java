@@ -1,5 +1,7 @@
 package net.whitbeck.rdb;
 
+import java.util.List;
+
 public abstract class KeyValuePair extends Entry {
 
   public static final int
@@ -83,7 +85,7 @@ public abstract class KeyValuePair extends Entry {
     throw new UnsupportedOperationException();
   }
 
-  public byte[][] getValues() {
+  public List<byte[]> getValues() {
     throw new UnsupportedOperationException();
   }
 }

@@ -8,6 +8,8 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RdbParser implements AutoCloseable {
 
@@ -38,7 +40,7 @@ public class RdbParser implements AutoCloseable {
   }
 
   public RdbParser(File file) throws IOException {
-    this.ch = FileChannel.open(file.toPath(), StandardOpenOption.READ);
+    this(file.toPath());
   }
 
   private void fillBuffer() throws IOException {
@@ -177,6 +179,10 @@ public class RdbParser implements AutoCloseable {
              (((int)bs[1] & 0xff) << 16) |
              (((int)bs[2] & 0xff) <<  8) |
              (((int)bs[3] & 0xff) <<  0));
+      if (len < 0) {
+        throw new IllegalStateException("Strings longer than " + Integer.MAX_VALUE +
+                                        "bytes are not supported.");
+      }
       return readBytes(len);
     case 3:
       return readSpecialStringEncoded(b & 0x3f);
@@ -284,39 +290,59 @@ public class RdbParser implements AutoCloseable {
   }
 
   private KeyValues readList(byte[] ts, byte[] key) throws IOException {
-    int size = (int)readLength();
-    byte[][] list = new byte[size][];
+    long len = readLength();
+    if (len > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("Lists with more than " + Integer.MAX_VALUE +
+                                         " elements are not supported.");
+    }
+    int size = (int)len;
+    List<byte[]> list = new ArrayList<byte[]>(size);
     for (int i=0; i<size; ++i) {
-      list[i] = readStringEncoded();
+      list.add(readStringEncoded());
     }
     return new KeyValues(KeyValuePair.LIST, ts, key, list);
   }
 
   private KeyValues readSet(byte[] ts, byte[] key) throws IOException {
-    int size = (int)readLength();
-    byte[][] set = new byte[size][];
+    long len = readLength();
+    if (len > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("Sets with more than " + Integer.MAX_VALUE +
+                                         " elements are not supported.");
+    }
+    int size = (int)len;
+    List<byte[]> set = new ArrayList<byte[]>(size);
     for (int i=0; i<size; ++i) {
-      set[i] = readStringEncoded();
+      set.add(readStringEncoded());
     }
     return new KeyValues(KeyValuePair.SET, ts, key, set);
   }
 
   private KeyValues readSortedSet(byte[] ts, byte[] key) throws IOException {
-    int size = (int)readLength();
-    byte[][] valueScoresPairs = new byte[2 * size][];
+    long len = readLength();
+    if (len > (Integer.MAX_VALUE / 2)) {
+      throw new IllegalArgumentException("SortedSets with more than " + (Integer.MAX_VALUE / 2) +
+                                         " elements are not supported.");
+    }
+    int size = (int)len;
+    List<byte[]> valueScoresPairs = new ArrayList<byte[]>(2 * size);
     for (int i=0; i<size; ++i) {
-      valueScoresPairs[2*i] = readStringEncoded();
-      valueScoresPairs[2*i+1] = readDoubleString();
+      valueScoresPairs.add(readStringEncoded());
+      valueScoresPairs.add(readDoubleString());
     }
     return new KeyValues(KeyValuePair.SORTED_SET, ts, key, valueScoresPairs);
   }
 
   private KeyValues readHash(byte[] ts, byte[] key) throws IOException {
-    int size = (int)readLength();
-    byte[][] kvPairs = new byte[2 * size][];
+    long len = readLength();
+    if (len > (Integer.MAX_VALUE / 2)) {
+      throw new IllegalArgumentException("Hashes with more than " + (Integer.MAX_VALUE / 2) +
+                                         " elements are not supported.");
+    }
+    int size = (int)len;
+    List<byte[]> kvPairs = new ArrayList<byte[]>(2 * size);
     for (int i=0; i<size; ++i) {
-      kvPairs[2*i] = readStringEncoded();
-      kvPairs[2*i+1] = readStringEncoded();
+      kvPairs.add(readStringEncoded());
+      kvPairs.add(readStringEncoded());
     }
     return new KeyValues(KeyValuePair.HASH, ts, key, kvPairs);
   }

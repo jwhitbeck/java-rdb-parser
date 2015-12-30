@@ -1,11 +1,13 @@
 package net.whitbeck.rdb;
 
+import java.util.List;
+
 class KeyValues extends KeyValuePair {
 
-  private byte[][] values;
+  private List<byte[]> values;
   private LazyList lazyList;
 
-  KeyValues(int valueType, byte[] ts, byte[] key, byte[][] values) {
+  KeyValues(int valueType, byte[] ts, byte[] key, List<byte[]> values) {
     super(valueType, ts, key);
     this.values = values;
   }
@@ -16,7 +18,7 @@ class KeyValues extends KeyValuePair {
   }
 
   @Override
-  public byte[][] getValues() {
+  public List<byte[]> getValues() {
     if (values == null) {
       values = lazyList.get();
       lazyList = null;
