@@ -4,7 +4,7 @@
   <artifactId>rdb-parser</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>rdb-parser</name>
-  <description>A simple redis RDB file parser for Java</description>
+  <description>A simple Redis RDB file parser for Java</description>
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
