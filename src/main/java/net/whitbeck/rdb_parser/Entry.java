@@ -1,4 +1,4 @@
-package net.whitbeck.rdb;
+package net.whitbeck.rdb_parser;
 
 public abstract class Entry {
 

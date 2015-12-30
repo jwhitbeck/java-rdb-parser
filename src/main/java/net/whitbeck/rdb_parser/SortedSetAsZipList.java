@@ -1,4 +1,4 @@
-package net.whitbeck.rdb;
+package net.whitbeck.rdb_parser;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;

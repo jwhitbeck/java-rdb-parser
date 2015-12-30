@@ -1,4 +1,4 @@
-package net.whitbeck.rdb;
+package net.whitbeck.rdb_parser;
 
 // adapted from https://github.com/ganghuawang/java-redis-rdb
 final class Lzf {
