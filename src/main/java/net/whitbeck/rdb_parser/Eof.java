@@ -12,6 +12,12 @@
 
 package net.whitbeck.rdb_parser;
 
+/**
+ * End-of-file entry. This is always the last entry in the file and, as of RDB version 6, contains an 8 byte
+ * checksum of the file.
+ *
+ * @author John Whitbeck
+ */
 public class Eof extends Entry {
 
   private final byte[] checksum;
@@ -25,6 +31,10 @@ public class Eof extends Entry {
     return Entry.EOF;
   }
 
+
+  /**
+   * @return the 8-byte checksum of the rdb file.
+   */
   public byte[] getChecksum() {
     return checksum;
   }

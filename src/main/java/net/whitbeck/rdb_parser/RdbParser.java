@@ -14,9 +14,11 @@ package net.whitbeck.rdb_parser;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -24,6 +26,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Reads entries (e.g. a DB select or a key-value pair) from a Redis RDB file,
+ * one at a time.
+ *
+ * @author John Whitbeck
+ */
 public class RdbParser implements AutoCloseable {
 
   private final static Charset ASCII = Charset.forName("ASCII");
@@ -36,7 +44,7 @@ public class RdbParser implements AutoCloseable {
 
   private static final int BUFFER_SIZE = 8 * 1024;
 
-  private final ByteChannel ch;
+  private final ReadableByteChannel ch;
   private final ByteBuffer buf = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
   /* Parsing state */
@@ -44,7 +52,7 @@ public class RdbParser implements AutoCloseable {
   private boolean isInitialized = false;
   private boolean hasNext = false;
 
-  public RdbParser(ByteChannel ch) {
+  public RdbParser(ReadableByteChannel ch) {
     this.ch = ch;
   }
 
@@ -54,6 +62,10 @@ public class RdbParser implements AutoCloseable {
 
   public RdbParser(File file) throws IOException {
     this(file.toPath());
+  }
+
+  public RdbParser(InputStream inputStream) throws IOException {
+    this(Channels.newChannel(inputStream));
   }
 
   private void fillBuffer() throws IOException {
@@ -112,6 +124,14 @@ public class RdbParser implements AutoCloseable {
     hasNext = true;
   }
 
+
+  /**
+   * Returns the next Entry from the underlying file or stream.
+   *
+   * @return the next entry
+   *
+   * @throws IOException
+   */
   public Entry readNext() throws IOException {
     if (!hasNext) {
       if (!isInitialized) {
@@ -377,6 +397,11 @@ public class RdbParser implements AutoCloseable {
     return new KeyValuePair(KeyValuePair.HASHMAP_AS_ZIPLIST, ts, key, new ZipList(readStringEncoded()));
   }
 
+  /**
+   * Closes the underlying file or stream.
+   *
+   * @throws IOException
+   */
   @Override
   public void close() throws IOException {
     ch.close();

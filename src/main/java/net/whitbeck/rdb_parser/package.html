@@ -1,0 +1,40 @@
+<body>
+
+  <h1> A simple Redis RDB file parser for Java</h1>
+
+  <h2>Overview</h2>
+
+  <p>
+    A very simple Java library for parsing <a href="http://redis.io">Redis</a> RDB files.
+  </p>
+
+  <p>
+    This library does the minimal amount of work to read entries (e.g. a new DB selector, or a key/value pair
+    with an expiry) from an RDB file. In particular, it does not make any assumptions about string encodings
+    or the types of objects to coerce Redis data into, thereby limiting itself to returning byte arrays or
+    lists of byte arrays for keys and values. Furthermore, it performs lazy decoding of the packed encodings
+    (ZipList, Hashmap as ZipList, Sorted Set as ZipList, and Intset) such that those are only decoded when
+    needed.
+  </p>
+
+  <p>
+    The ZipMap encoding, deprecated as of RDB version 4 is not currently supported. If you need it, please
+    open a Github issue.
+  </p>
+
+  <h2>References</h2>
+
+  <ul>
+    <li>
+      <a href="https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format">
+        RDB file format
+      </a>
+    </li>
+    <li>
+      <a href="https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile">
+        RDB file format history
+      </a>
+    </li>
+  </ul>
+
+</body>

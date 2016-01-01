@@ -12,6 +12,12 @@
 
 package net.whitbeck.rdb_parser;
 
+/**
+ * DB selection entries mark the beginning of a new database in the RDB dump file. All subsequent {@link
+ * KeyValuePair}s until the next {@link DbSelect} or {@link Eof} entry belong to this database.
+ *
+ * @author John Whitbeck
+ */
 public class DbSelect extends Entry {
 
   private final long id;
@@ -25,6 +31,11 @@ public class DbSelect extends Entry {
     return Entry.DB_SELECT;
   }
 
+  /**
+   * Returns the identifier of this database.
+   *
+   * @return the database identifier
+   */
   public long getId() {
     return id;
   }
