@@ -25,6 +25,9 @@
     <developerConnection>scm:git:git@github.com:jwhitbeck/java-rdb-parser.git</developerConnection>
     <url>https://github.com/jwhitbeck/java-rdb-parser</url>
   </scm>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
   <dependencies>
     <!-- Junit -->
     <dependency>
