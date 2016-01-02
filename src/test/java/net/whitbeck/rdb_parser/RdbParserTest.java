@@ -91,7 +91,7 @@ public class RdbParserTest {
 
   @Test
   public void magicNumber() throws IOException {
-    setTestFile(ByteBuffer.wrap("not a valid redis file".getBytes()));
+    setTestFile(ByteBuffer.wrap("not a valid redis file".getBytes("ASCII")));
     try (RdbParser p = openTestParser()) {
       thrown.expect(IllegalStateException.class);
       thrown.expectMessage("Not a valid redis RDB file");
@@ -101,7 +101,7 @@ public class RdbParserTest {
 
   @Test
   public void versionCheck() throws IOException {
-    setTestFile(ByteBuffer.wrap("REDIS0042".getBytes()));
+    setTestFile(ByteBuffer.wrap("REDIS0042".getBytes("ASCII")));
     try (RdbParser p = openTestParser()) {
       thrown.expect(IllegalStateException.class);
       thrown.expectMessage("Unknown version");
@@ -179,7 +179,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void integerOneByteEncodingTest() throws Exception {
+  public void integerOneByteEncoding() throws Exception {
     jedis.flushAll();
     jedis.set("foo", "12");
     Assert.assertEquals("int", jedis.objectEncoding("foo"));
@@ -193,7 +193,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void integerTwoBytesEncodingTest() throws Exception {
+  public void integerTwoBytesEncoding() throws Exception {
     jedis.flushAll();
     jedis.set("foo", "1234");
     Assert.assertEquals("int", jedis.objectEncoding("foo"));
@@ -207,7 +207,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void integerFourByteEncodingTest() throws Exception {
+  public void integerFourByteEncoding() throws Exception {
     jedis.flushAll();
     jedis.set("foo", "123456789");
     Assert.assertEquals("int", jedis.objectEncoding("foo"));
@@ -221,7 +221,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void LzfEncodingTest() throws Exception {
+  public void lzfEncoding() throws Exception {
     jedis.flushAll();
     jedis.set("foo", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     Assert.assertEquals("raw", jedis.objectEncoding("foo"));
@@ -236,7 +236,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void listTest() throws Exception {
+  public void list() throws Exception {
     jedis.flushAll();
     String origValue = jedis.configGet("list-max-ziplist-entries").get(1);
     jedis.configSet("list-max-ziplist-entries", "0");
@@ -255,7 +255,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void setTest() throws Exception {
+  public void set() throws Exception {
     Set<String> set = new HashSet<String>();
     Collections.addAll(set, "bar", "1234", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     jedis.flushAll();
@@ -276,7 +276,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void sortedSetTest() throws Exception {
+  public void sortedSet() throws Exception {
     Map<String, Double> valueScoreMap = new HashMap<String, Double>();
     valueScoreMap.put("foo", 1.45);
     valueScoreMap.put("bar", Double.POSITIVE_INFINITY);
@@ -302,7 +302,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void hashTest() throws Exception {
+  public void hash() throws Exception {
     Map<String, String> map = new HashMap<String, String>();
     map.put("one", "loremipsum");
     map.put("two", "2");
@@ -328,7 +328,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void zipListTest() throws Exception {
+  public void zipList() throws Exception {
     List<String> list = Arrays.asList("loremipsum", // string
                                       "10", // 4 bit integer
                                       "30", // 8 bit integer
@@ -361,7 +361,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void intSet16BitTest() throws Exception {
+  public void intSet16Bit() throws Exception {
     Set<String> ints = new HashSet<String>();
     Collections.addAll(ints, "1", "-1", "12", "-12");
     jedis.flushAll();
@@ -382,7 +382,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void intSet32BitTest() throws Exception {
+  public void intSet32Bit() throws Exception {
     Set<String> ints = new HashSet<String>();
     Collections.addAll(ints, "1", "-1", "30000000", "-30000000");
     jedis.flushAll();
@@ -403,7 +403,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void intSet64BitTest() throws Exception {
+  public void intSet64Bit() throws Exception {
     Set<String> ints = new HashSet<String>();
     Collections.addAll(ints, "1", "-1", "9000000000", "-9000000000");
     jedis.flushAll();
@@ -424,7 +424,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void sortedSetAsZipListTest() throws Exception {
+  public void sortedSetAsZipList() throws Exception {
     Map<String, Double> valueScoreMap = new HashMap<String, Double>();
     valueScoreMap.put("foo", 1.45);
     valueScoreMap.put("bar", Double.POSITIVE_INFINITY);
@@ -447,7 +447,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void hashmapAsZipListTest() throws Exception {
+  public void hashmapAsZipList() throws Exception {
     Map<String, String> map = new HashMap<String, String>();
     map.put("one", "loremipsum");
     map.put("two", "2");
