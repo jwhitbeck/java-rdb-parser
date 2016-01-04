@@ -18,7 +18,7 @@ package net.whitbeck.rdb_parser;
  *
  * @author John Whitbeck
  */
-public class DbSelect extends Entry {
+public class DbSelect implements Entry {
 
   private final long id;
 
@@ -27,8 +27,8 @@ public class DbSelect extends Entry {
   }
 
   @Override
-  public int getType() {
-    return Entry.DB_SELECT;
+  public EntryType getType() {
+    return EntryType.DB_SELECT;
   }
 
   /**

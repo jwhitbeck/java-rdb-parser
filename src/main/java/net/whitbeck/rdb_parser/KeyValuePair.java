@@ -25,70 +25,17 @@ import java.util.List;
  *
  * @author John Whitbeck
  */
-public final class KeyValuePair extends Entry {
-
-  /**
-   * A simple redis key/value pair as created by <code>set foo bar</code>.
-   */
-  public static final int VALUE = 0;
-
-  /**
-   * A redis list as created by <code>lpush foo bar</code>.
-   */
-  public static final int LIST = 1;
-
-  /**
-   *A redis set as created by <code>sadd foo bar</code>.
-   */
-  public static final int SET = 2;
-
-  /**
-   * A redis sorted set as created by <code>zadd foo 1.2 bar</code>.
-   */
-  public static final int SORTED_SET = 3;
-
-  /**
-   * A redis hash as created by <code>hset foo bar baz</code>.
-   */
-  public static final int HASH = 4;
-
-  /**
-   * A compact encoding for small hashes. Deprecated as of redis 2.6 and not currently supported.
-   */
-  public static final int ZIPMAP = 9;
-
-  /**
-   * A compact encoding for small lists.
-   */
-  public static final int ZIPLIST = 10;
-
-
-  /**
-   * A compact encoding for sets comprised entirely of integers.
-   */
-  public static final int INTSET = 11;
-
-
-  /**
-   * A compact encoding for small sorted sets in which value/score pairs are flattened and stored in a ZipList.
-   */
-  public static final int SORTED_SET_AS_ZIPLIST = 12;
-
-  /**
-   * A compact encoding for small hashes in which key/value pairs are flattened and stored in a ZipList
-   */
-  public static final int HASHMAP_AS_ZIPLIST = 13;
-
+public final class KeyValuePair implements Entry {
 
   private byte[] ts;
   private long expiry;
   private final boolean hasExpiry;
   private final byte[] key;
-  private final int valueType;
+  private final ValueType valueType;
   private List<byte[]> values;
   private LazyList lazyList;
 
-  KeyValuePair(int valueType, byte [] ts, byte[] key, List<byte[]> values) {
+  KeyValuePair(ValueType valueType, byte [] ts, byte[] key, List<byte[]> values) {
     this.valueType = valueType;
     this.ts = ts;
     this.key = key;
@@ -96,7 +43,7 @@ public final class KeyValuePair extends Entry {
     this.values = values;
   }
 
-  KeyValuePair(int valueType, byte [] ts, byte[] key, LazyList lazyList) {
+  KeyValuePair(ValueType valueType, byte [] ts, byte[] key, LazyList lazyList) {
     this.valueType = valueType;
     this.ts = ts;
     this.key = key;
@@ -110,13 +57,13 @@ public final class KeyValuePair extends Entry {
    *
    * @return the value type encoding.
    */
-  public int getValueType() {
+  public ValueType getValueType() {
     return valueType;
   }
 
   @Override
-  public int getType() {
-    return Entry.KEY_VALUE_PAIR;
+  public EntryType getType() {
+    return EntryType.KEY_VALUE_PAIR;
   }
 
   /**

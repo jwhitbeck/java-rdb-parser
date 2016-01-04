@@ -18,7 +18,7 @@ package net.whitbeck.rdb_parser;
  *
  * @author John Whitbeck
  */
-public class Eof extends Entry {
+public class Eof implements Entry {
 
   private final byte[] checksum;
 
@@ -27,8 +27,8 @@ public class Eof extends Entry {
   }
 
   @Override
-  public int getType() {
-    return Entry.EOF;
+  public EntryType getType() {
+    return EntryType.EOF;
   }
 
 

@@ -292,26 +292,25 @@ public class RdbParser implements AutoCloseable {
   private KeyValuePair readEntry(byte[] ts, int valueType) throws IOException {
     byte[] key = readStringEncoded();
     switch (valueType) {
-    case KeyValuePair.VALUE:
+    case 0:
       return readValue(ts, key);
-    case KeyValuePair.LIST:
+    case 1:
       return readList(ts, key);
-    case KeyValuePair.SET:
+    case 2:
       return readSet(ts, key);
-    case KeyValuePair.SORTED_SET:
+    case 3:
       return readSortedSet(ts, key);
-    case KeyValuePair.HASH:
+    case 4:
       return readHash(ts, key);
-    case KeyValuePair.ZIPMAP:
-      throw new UnsupportedOperationException("Parsing zipmaps (deprecated as of redis 2.6) " +
-                                              "is not supported!");
-    case KeyValuePair.ZIPLIST:
+    case 9:
+      return readZipMap(ts, key);
+    case 10:
       return readZipList(ts, key);
-    case KeyValuePair.INTSET:
+    case 11:
       return readIntSet(ts, key);
-    case KeyValuePair.SORTED_SET_AS_ZIPLIST:
+    case 12:
       return readSortedSetAsZipList(ts, key);
-    case KeyValuePair.HASHMAP_AS_ZIPLIST:
+    case 13:
       return readHashmapAsZipList(ts, key);
     default:
       throw new UnsupportedOperationException("Unknown value type: " + valueType);
@@ -319,7 +318,7 @@ public class RdbParser implements AutoCloseable {
   }
 
   private KeyValuePair readValue(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(KeyValuePair.VALUE, ts, key, Arrays.asList(readStringEncoded()));
+    return new KeyValuePair(ValueType.VALUE, ts, key, Arrays.asList(readStringEncoded()));
   }
 
   private KeyValuePair readList(byte[] ts, byte[] key) throws IOException {
@@ -333,7 +332,7 @@ public class RdbParser implements AutoCloseable {
     for (int i=0; i<size; ++i) {
       list.add(readStringEncoded());
     }
-    return new KeyValuePair(KeyValuePair.LIST, ts, key, list);
+    return new KeyValuePair(ValueType.LIST, ts, key, list);
   }
 
   private KeyValuePair readSet(byte[] ts, byte[] key) throws IOException {
@@ -347,7 +346,7 @@ public class RdbParser implements AutoCloseable {
     for (int i=0; i<size; ++i) {
       set.add(readStringEncoded());
     }
-    return new KeyValuePair(KeyValuePair.SET, ts, key, set);
+    return new KeyValuePair(ValueType.SET, ts, key, set);
   }
 
   private KeyValuePair readSortedSet(byte[] ts, byte[] key) throws IOException {
@@ -362,7 +361,7 @@ public class RdbParser implements AutoCloseable {
       valueScoresPairs.add(readStringEncoded());
       valueScoresPairs.add(readDoubleString());
     }
-    return new KeyValuePair(KeyValuePair.SORTED_SET, ts, key, valueScoresPairs);
+    return new KeyValuePair(ValueType.SORTED_SET, ts, key, valueScoresPairs);
   }
 
   private KeyValuePair readHash(byte[] ts, byte[] key) throws IOException {
@@ -377,24 +376,29 @@ public class RdbParser implements AutoCloseable {
       kvPairs.add(readStringEncoded());
       kvPairs.add(readStringEncoded());
     }
-    return new KeyValuePair(KeyValuePair.HASH, ts, key, kvPairs);
+    return new KeyValuePair(ValueType.HASH, ts, key, kvPairs);
+  }
+
+  private KeyValuePair readZipMap(byte[] ts, byte[] key) throws IOException {
+    throw new UnsupportedOperationException("Parsing zipmaps (deprecated as of redis 2.6) " +
+                                            "is not supported!");
   }
 
   private KeyValuePair readZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(KeyValuePair.ZIPLIST, ts, key, new ZipList(readStringEncoded()));
+    return new KeyValuePair(ValueType.ZIPLIST, ts, key, new ZipList(readStringEncoded()));
   }
 
   private KeyValuePair readIntSet(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(KeyValuePair.INTSET, ts, key, new IntSet(readStringEncoded()));
+    return new KeyValuePair(ValueType.INTSET, ts, key, new IntSet(readStringEncoded()));
   }
 
   private KeyValuePair readSortedSetAsZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(KeyValuePair.SORTED_SET_AS_ZIPLIST, ts, key,
-                         new SortedSetAsZipList(readStringEncoded()));
+    return new KeyValuePair(ValueType.SORTED_SET_AS_ZIPLIST, ts, key,
+                            new SortedSetAsZipList(readStringEncoded()));
   }
 
   private KeyValuePair readHashmapAsZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(KeyValuePair.HASHMAP_AS_ZIPLIST, ts, key, new ZipList(readStringEncoded()));
+    return new KeyValuePair(ValueType.HASHMAP_AS_ZIPLIST, ts, key, new ZipList(readStringEncoded()));
   }
 
   /**

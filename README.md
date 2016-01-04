@@ -58,19 +58,19 @@ TODO: maven instructions
 import java.io.File;
 import net.whitbeck.rdb_parser.*;
 
-public class RDBFilePrinter {
+public class RdbFilePrinter {
 
-  public void printRDBFile(File file) throws Exception {
+  public void printRdbFile(File file) throws Exception {
     try (RdbParser parser = new RdbParser(file)) {
       Entry e;
       while ((e = parser.readNext()) != null) {
         switch (e.getType()) {
 
-        case Entry.DB_SELECT:
-          System.out.println("Parsing DB: " + ((DbSelect)e).getId());
+        case DB_SELECT:
+          System.out.println("Processing DB: " + ((DbSelect)e).getId());
           break;
 
-        case Entry.EOF:
+        case EOF:
           System.out.print("End of file. Checksum: ");
           for (byte b : ((Eof)e).getChecksum()) {
             System.out.print(String.format("%02x", b & 0xff));
@@ -78,7 +78,7 @@ public class RDBFilePrinter {
           System.out.println();
           break;
 
-        case Entry.KEY_VALUE_PAIR:
+        case KEY_VALUE_PAIR:
           System.out.println("Key value pair");
           KeyValuePair kvp = (KeyValuePair)e;
           System.out.println("Key: " + new String(kvp.getKey(), "ASCII"));
@@ -104,22 +104,22 @@ public class RDBFilePrinter {
 Call this function on the `dump.rdb` file. The output will be:
 
 ```
-Parsing DB: 0
+Processing DB: 0
 ------------
 Key value pair
 Key: myset
-Value type: 12
+Value type: HASHMAP_AS_ZIPLIST
 Values: one 1 two 2 two-point-five 2.5
 ------------
 Key value pair
 Key: myhash
-Value type: 13
+Value type: SORTED_SET_AS_ZIPLIST
 Values: field1 val1 field2 val2
 ------------
 Key value pair
 Key: foo
 Expiry (ms): 1451518660934
-Value type: 0
+Value type: VALUE
 Values: bar
 ------------
 End of file. Checksum: 157e40ad49ef13f6
