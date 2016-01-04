@@ -27,8 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Reads entries (e.g. a DB select or a key-value pair) from a Redis RDB file,
- * one at a time.
+ * Reads entries from a Redis RDB file, one at a time.
  *
  * @author John Whitbeck
  */

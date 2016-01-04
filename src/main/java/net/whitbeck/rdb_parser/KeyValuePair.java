@@ -18,9 +18,9 @@ import java.util.List;
  * Key/value pair entries contain all the data associated with a given key:
  *
  * <ul>
- *  <li>The key itself</li>
- *  <li>Optionally, the expiry timestamp</li>
- *  <li>The values associated with the key</li>
+ *  <li>the key itself;</li>
+ *  <li>optionally, the expiry timestamp;</li>
+ *  <li>the values associated with the key.</li>
  * </ul>
  *
  * @author John Whitbeck
