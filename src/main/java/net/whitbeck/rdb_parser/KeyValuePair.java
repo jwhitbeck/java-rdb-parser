@@ -15,7 +15,7 @@ package net.whitbeck.rdb_parser;
 import java.util.List;
 
 /**
- * Key/value pair entries contain all the data associated with a given key:
+ * Key/value pair entries contain all the data associated with a given key. This data includes:
  *
  * <ul>
  *  <li>the key itself;</li>
@@ -138,7 +138,7 @@ public final class KeyValuePair implements Entry {
    *  <li>LIST, ZIPLIST, SET, INTSET: the values in the order they appear in the RDB file.</li>
    *  <li>HASH, HASHMAP_AS_ZIPLIST: a flattened list of key/value pairs.</li>
    *  <li>SORTED_SET, SORTED_SET_AS_ZIPLIST: a flattened list of key/score pairs;
-   *      the scores can be parsed using {@link Double.parseDouble}.</li>
+   *      the scores can be parsed using {@code Double.parseDouble}.</li>
    * </ul>
    *
    * @return the list of values.

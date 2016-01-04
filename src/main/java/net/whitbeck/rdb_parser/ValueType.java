@@ -16,7 +16,7 @@ package net.whitbeck.rdb_parser;
 /**
  * This enum holds the different value serialization type encountered in an RDB file.
  *
- * @author
+ * @author John Whitbeck
  */
 public enum ValueType {
 
