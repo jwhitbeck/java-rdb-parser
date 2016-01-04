@@ -10,7 +10,7 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package net.whitbeck.rdb_parser;
+package net.whitbeck.rdbparser;
 
 /**
  * This enum holds the three types of entries that the {@link RdbParser} can read from a RDB file.

@@ -37,4 +37,4 @@
  *   </li>
  * </ul>
 */
-package net.whitbeck.rdb_parser;
+package net.whitbeck.rdbparser;

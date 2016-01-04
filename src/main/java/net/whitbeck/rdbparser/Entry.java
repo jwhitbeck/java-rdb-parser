@@ -10,11 +10,14 @@
  * You must not remove this notice, or any other, from this software.
  */
 
+package net.whitbeck.rdbparser;
 
-package net.whitbeck.rdb_parser;
+public interface Entry {
 
-import java.util.List;
-
-interface LazyList {
-  List<byte[]> get();
+  /**
+   * Returns the entry type.
+   *
+   * @return one of EOF, DB_SELECT, or KEY_VALUE_PAIR
+   */
+  EntryType getType();
 }

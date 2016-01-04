@@ -56,7 +56,7 @@ TODO: maven instructions
 
 ```java
 import java.io.File;
-import net.whitbeck.rdb_parser.*;
+import net.whitbeck.rdbparser.*;
 
 public class RdbFilePrinter {
 

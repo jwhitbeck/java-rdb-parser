@@ -10,7 +10,7 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package net.whitbeck.rdb_parser;
+package net.whitbeck.rdbparser;
 
 import java.util.List;
 

@@ -10,7 +10,7 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package net.whitbeck.rdb_parser;
+package net.whitbeck.rdbparser;
 
 /**
  * DB selection entries mark the beginning of a new database in the RDB dump file. All subsequent {@link
