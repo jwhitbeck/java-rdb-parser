@@ -5,7 +5,7 @@
  * Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0.txt)
  * which can be found in the file al-v20.txt at the root of this distribution.
  * By using this software in any fashion, you are agreeing to be bound by
- * the terms of this license.
+n * the terms of this license.
  *
  * You must not remove this notice, or any other, from this software.
  */
@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 
-class SortedSetAsZipList extends ZipList {
+final class SortedSetAsZipList implements LazyList {
 
   private final static Charset ASCII = Charset.forName("ASCII");
 
@@ -26,13 +26,15 @@ class SortedSetAsZipList extends ZipList {
     NEG_INF_BYTES = "-inf".getBytes(ASCII),
     NAN_BYTES = "nan".getBytes(ASCII);
 
+  private final byte[] envelope;
+
   SortedSetAsZipList(byte[] envelope) {
-    super(envelope);
+    this.envelope = envelope;
   }
 
   @Override
   public List<byte[]> get() {
-    List<byte[]> values = super.get();
+    List<byte[]> values = new ZipList(envelope).get();
     // fix the "+inf", "-inf", and "nan" values
     for (ListIterator<byte[]> i = values.listIterator(); i.hasNext(); ) {
       byte[] val = i.next();

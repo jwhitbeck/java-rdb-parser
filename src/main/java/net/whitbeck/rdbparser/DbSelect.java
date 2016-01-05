@@ -18,7 +18,7 @@ package net.whitbeck.rdbparser;
  *
  * @author John Whitbeck
  */
-public class DbSelect implements Entry {
+public final class DbSelect implements Entry {
 
   private final long id;
 

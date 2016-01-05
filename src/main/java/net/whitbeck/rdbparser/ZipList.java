@@ -16,7 +16,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-class ZipList implements LazyList {
+final class ZipList implements LazyList {
 
   private final static Charset ASCII = Charset.forName("ASCII");
   private final byte[] envelope;

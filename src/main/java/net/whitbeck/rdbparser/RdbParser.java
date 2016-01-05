@@ -31,7 +31,7 @@ import java.util.List;
  *
  * @author John Whitbeck
  */
-public class RdbParser implements AutoCloseable {
+public final class RdbParser implements AutoCloseable {
 
   private final static Charset ASCII = Charset.forName("ASCII");
 

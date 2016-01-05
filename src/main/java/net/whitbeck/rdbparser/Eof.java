@@ -18,7 +18,7 @@ package net.whitbeck.rdbparser;
  *
  * @author John Whitbeck
  */
-public class Eof implements Entry {
+public final class Eof implements Entry {
 
   private final byte[] checksum;
 
