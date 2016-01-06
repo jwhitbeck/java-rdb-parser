@@ -51,6 +51,32 @@ public final class KeyValuePair implements Entry {
     this.lazyList = lazyList;
   }
 
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(EntryType.KEY_VALUE_PAIR);
+    sb.append(" (key: ");
+    for (byte b : key) {
+      if (b > 31 && b < 127) { // printable ascii characters
+        sb.append((char)b);
+      } else {
+        sb.append(String.format("\\x%02x", (int)b & 0xff));
+      }
+    }
+    if (hasExpiry()) {
+      sb.append(", expiry: ");
+      sb.append(getExpiryMillis());
+    }
+    sb.append(", ");
+    int len = getValues().size();
+    sb.append(len);
+    if (len == 1) {
+      sb.append(" value)");
+    } else {
+      sb.append(" values)");
+    }
+    return sb.toString();
+  }
 
   /**
    * Returns the value type encoding.

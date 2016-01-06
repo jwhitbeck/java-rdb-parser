@@ -39,4 +39,9 @@ public final class DbSelect implements Entry {
   public long getId() {
     return id;
   }
+
+  @Override
+  public String toString() {
+    return EntryType.DB_SELECT + " (" + id + ")";
+  }
 }

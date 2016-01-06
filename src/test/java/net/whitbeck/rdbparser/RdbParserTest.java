@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -194,6 +195,36 @@ public class RdbParserTest {
   }
 
   @Test
+  public void stringRepresentations() throws Exception {
+    jedis.flushAll();
+    jedis.set("simple-key", "val");
+    jedis.set("key-with-expiry", "val");
+    long expiry = 2000000000000L;
+    jedis.pexpireAt("key-with-expiry", expiry);
+    jedis.lpush("list-key", "one", "two", "three");
+    jedis.set(new byte[]{0, 1, 2, 3}, "val".getBytes("ASCII"));
+    jedis.save();
+    try (RdbParser p = openTestParser()) {
+      Assert.assertEquals(p.readNext().toString(), "DB_SELECT (0)");
+      for (int i=0; i<4; ++i) {
+        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        byte[] k = kvp.getKey();
+        if (Arrays.equals(k, "simple-key".getBytes("ASCII"))) {
+          Assert.assertEquals(kvp.toString(), "KEY_VALUE_PAIR (key: simple-key, 1 value)");
+        } else if (Arrays.equals(k, "key-with-expiry".getBytes("ASCII"))) {
+          Assert.assertEquals(kvp.toString(),
+                              "KEY_VALUE_PAIR (key: key-with-expiry, expiry: " + expiry+ ", 1 value)");
+        } else if (Arrays.equals(k, "list-key".getBytes("ASCII"))) {
+          Assert.assertEquals(kvp.toString(), "KEY_VALUE_PAIR (key: list-key, 3 values)");
+        } else if (Arrays.equals(k, new byte[]{0, 1, 2, 3})) {
+          Assert.assertEquals(kvp.toString(), "KEY_VALUE_PAIR (key: \\x00\\x01\\x02\\x03, 1 value)");
+        }
+      }
+      Assert.assertTrue(Pattern.matches("EOF \\([\\da-f]{16}\\)", p.readNext().toString()));
+    }
+  }
+
+  @Test
   public void binaryKeyAndValues() throws Exception {
     byte[] key = new byte[]{0, 1, 2, 3};
     byte[] val = new byte[]{4, 5, 6};
@@ -202,7 +233,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertArrayEquals(key, kvp.getKey());
       Assert.assertArrayEquals(val, kvp.getValues().get(0));
     }
@@ -216,7 +247,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("12", str(kvp.getValues().get(0)));
     }
@@ -230,7 +261,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("1234", str(kvp.getValues().get(0)));
     }
@@ -244,7 +275,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("123456789", str(kvp.getValues().get(0)));
     }
@@ -258,7 +289,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                           str(kvp.getValues().get(0)));
@@ -275,7 +306,7 @@ public class RdbParserTest {
     jedis.configSet("list-max-ziplist-entries", origValue);
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.LIST == kvp.getValueType());
       List<byte[]> list = kvp.getValues();
       Assert.assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", str(list.get(0)));
@@ -295,7 +326,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.SET == kvp.getValueType());
       Set<String> parsedSet = new HashSet<String>();
       for (byte[] elem : kvp.getValues()) {
@@ -321,7 +352,7 @@ public class RdbParserTest {
     jedis.configSet("zset-max-ziplist-entries", origValue);
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.SORTED_SET == kvp.getValueType());
       Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
       for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
@@ -347,7 +378,7 @@ public class RdbParserTest {
     jedis.configSet("hash-max-ziplist-entries", origValue);
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.HASH == kvp.getValueType());
       Map<String,String> parsedMap = new HashMap<String,String>();
       for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
@@ -379,7 +410,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.ZIPLIST == kvp.getValueType());
       List<String> parsedList = new ArrayList<String>();
       for (byte[] val : kvp.getValues()) {
@@ -401,7 +432,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.INTSET == kvp.getValueType());
       Set<String> parsedInts = new HashSet<String>();
       for (byte[] bs : kvp.getValues()) {
@@ -422,7 +453,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.INTSET == kvp.getValueType());
       Set<String> parsedInts = new HashSet<String>();
       for (byte[] bs : kvp.getValues()) {
@@ -443,7 +474,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.INTSET == kvp.getValueType());
       Set<String> parsedInts = new HashSet<String>();
       for (byte[] bs : kvp.getValues()) {
@@ -466,7 +497,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.SORTED_SET_AS_ZIPLIST == kvp.getValueType());
       Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
       for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ){
@@ -489,7 +520,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
-      KeyValuePair kvp = (KeyValuePair)(p.readNext());
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.HASHMAP_AS_ZIPLIST == kvp.getValueType());
       Map<String,String> parsedMap = new HashMap<String,String>();
       for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {

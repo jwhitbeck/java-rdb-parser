@@ -38,4 +38,16 @@ public final class Eof implements Entry {
   public byte[] getChecksum() {
     return checksum;
   }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(EntryType.EOF);
+    sb.append(" (");
+    for (byte b : checksum) {
+      sb.append(String.format("%02x", (int)b & 0xff));
+    }
+    sb.append(")");
+    return sb.toString();
+  }
 }
