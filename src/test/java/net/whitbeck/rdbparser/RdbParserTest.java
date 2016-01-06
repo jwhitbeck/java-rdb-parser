@@ -164,6 +164,36 @@ public class RdbParserTest {
   }
 
   @Test
+  public void expiries() throws Exception {
+    long curTimeMills = System.currentTimeMillis();
+    jedis.flushAll();
+    jedis.set("noexpiry", "val");
+    jedis.set("seconds", "val");
+    jedis.expire("seconds", 60);
+    jedis.set("millis", "val");
+    jedis.pexpire("millis", 10000L);
+    jedis.save();
+    try (RdbParser p = openTestParser()) {
+      p.readNext(); // skip DB_SELECTOR
+      for (int i=0; i<3; ++i) {
+        KeyValuePair kvp = (KeyValuePair)(p.readNext());
+        String k = new String(kvp.getKey(), "ASCII");
+        if (k.equals("noexpiry")) {
+          Assert.assertFalse(kvp.hasExpiry());
+        } else if (k.equals("seconds")) {
+          Assert.assertTrue(kvp.hasExpiry());
+          // Tolerate a second between the rdb dump and the test time
+          Assert.assertTrue(kvp.getExpiryMillis() > curTimeMills + 59000);
+        } else if (k.equals("millis")) {
+          Assert.assertTrue(kvp.hasExpiry());
+          // Tolerate a second between the rdb dump and the test time
+          Assert.assertTrue(kvp.getExpiryMillis() > curTimeMills + 9000);
+        }
+      }
+    }
+  }
+
+  @Test
   public void binaryKeyAndValues() throws Exception {
     byte[] key = new byte[]{0, 1, 2, 3};
     byte[] val = new byte[]{4, 5, 6};
