@@ -166,29 +166,28 @@ public class RdbParserTest {
 
   @Test
   public void expiries() throws Exception {
-    long curTimeMills = System.currentTimeMillis();
+    long expirySecs = 3000000000L;
+    long expiryMillis = 2000000000000L;
     jedis.flushAll();
     jedis.set("noexpiry", "val");
     jedis.set("seconds", "val");
-    jedis.expire("seconds", 60);
+    jedis.expireAt("seconds", expirySecs);
     jedis.set("millis", "val");
-    jedis.pexpire("millis", 10000L);
+    jedis.pexpireAt("millis", expiryMillis);
     jedis.save();
     try (RdbParser p = openTestParser()) {
       p.readNext(); // skip DB_SELECTOR
       for (int i=0; i<3; ++i) {
-        KeyValuePair kvp = (KeyValuePair)(p.readNext());
+        KeyValuePair kvp = (KeyValuePair)p.readNext();
         String k = new String(kvp.getKey(), "ASCII");
         if (k.equals("noexpiry")) {
           Assert.assertFalse(kvp.hasExpiry());
         } else if (k.equals("seconds")) {
           Assert.assertTrue(kvp.hasExpiry());
-          // Tolerate a second between the rdb dump and the test time
-          Assert.assertTrue(kvp.getExpiryMillis() > curTimeMills + 59000);
+          Assert.assertTrue(kvp.getExpiryMillis() == expirySecs * 1000);
         } else if (k.equals("millis")) {
           Assert.assertTrue(kvp.hasExpiry());
-          // Tolerate a second between the rdb dump and the test time
-          Assert.assertTrue(kvp.getExpiryMillis() > curTimeMills + 9000);
+          Assert.assertTrue(kvp.getExpiryMillis() == expiryMillis);
         }
       }
     }
