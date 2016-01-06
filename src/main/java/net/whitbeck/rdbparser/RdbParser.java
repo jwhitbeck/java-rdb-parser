@@ -67,6 +67,10 @@ public final class RdbParser implements AutoCloseable {
     this(Channels.newChannel(inputStream));
   }
 
+  public RdbParser(String filename) throws IOException {
+    this(new File(filename));
+  }
+
   private void fillBuffer() throws IOException {
     buf.clear();
     if (ch.read(buf) == -1) {
