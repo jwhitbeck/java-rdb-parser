@@ -3,7 +3,7 @@
   <!-- Packaging info -->
   <groupId>net.whitbeck</groupId>
   <artifactId>rdb-parser</artifactId>
-  <version>0.0.3</version>
+  <version>1.0.0</version>
   <!-- Project info -->
   <name>${project.groupId}:${project.artifactId}</name>
   <description>A simple Redis RDB file parser for Java</description>
