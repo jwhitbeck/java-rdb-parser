@@ -4,8 +4,7 @@
 
 ## Overview
 
-A very simple Java library for parsing [Redis](http://redis.io)
-[RDB](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format) files.
+A very simple Java library for parsing [Redis](http://redis.io) RDB files.
 
 This library does the minimal amount of work to read entries (e.g. a new DB selector, or a key/value pair with
 an expiry) from an RDB file. In particular, it does not make any assumptions about string encodings or the
@@ -13,9 +12,21 @@ types of objects to coerce Redis data into, thereby limiting itself to returning
 arrays for keys and values. Furthermore, it performs lazy decoding of the packed encodings (ZipList, Hashmap
 as ZipList, Sorted Set as ZipList, and Intset) such that those are only decoded when needed.
 
-The ZipMap encoding, deprecated as of RDB
-[version 4](https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile),
-is not currently supported. If you need it, please open a Github issue.
+The ZipMap encoding, deprecated as of redis 2.6, is not currently supported. If you need it, please open a
+Github issue.
+
+To use this library, including the following dependency in your `pom.xml`.
+
+```xml
+<dependency>
+    <groupId>net.whitbeck</groupId>
+    <artifactId>rdb-parser</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+Javadocs are available at
+[javadoc.io/doc/net.whitbeck/rdb-parser/](http://www.javadoc.io/doc/net.whitbeck/rdb-parser/).
 
 ## Example usage
 
@@ -51,8 +62,7 @@ Finally, let's save the dump to disk. This will create a `dump.rdb` file in the 
 127.0.0.1:6379> exit
 $ killall redis-server
 ```
-
-TODO: maven instructions
+Now let's see how to parse the `dump.rdb` file from Java.
 
 ```java
 import java.io.File;
@@ -108,12 +118,12 @@ Processing DB: 0
 ------------
 Key value pair
 Key: myset
-Value type: HASHMAP_AS_ZIPLIST
+Value type: SORTED_SET_AS_ZIPLIST
 Values: one 1 two 2 two-point-five 2.5
 ------------
 Key value pair
 Key: myhash
-Value type: SORTED_SET_AS_ZIPLIST
+Value type: HASHMAP_AS_ZIPLIST
 Values: field1 val1 field2 val2
 ------------
 Key value pair
@@ -125,3 +135,12 @@ Values: bar
 End of file. Checksum: 157e40ad49ef13f6
 ------------
 ```
+
+Note that sorted sets and hashes are parsed as a flat list of value/score pairs and key/value pairs,
+respectively. Simple redis values are parsed as a singleton. As expected, redis lists and sets are parsed as
+lists of values.
+
+## References
+
+- [RDB file format](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format)
+- [RDB file format history](https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile)
