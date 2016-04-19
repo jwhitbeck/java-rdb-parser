@@ -23,6 +23,8 @@
  * The ZipMap encoding, deprecated as of Redis 2.6, is not currently supported. If you need it, please
  * open a Github issue.
  * <p>
+ * Implemenation is not thread safe.
+ * <p>
  * References:
  * <ul>
  *   <li>
