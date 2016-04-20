@@ -1,13 +1,13 @@
 /**
  * Copyright (c) 2015-2016 John Whitbeck. All rights reserved.
  *
- * The use and distribution terms for this software are covered by the
+ * <p>The use and distribution terms for this software are covered by the
  * Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0.txt)
  * which can be found in the file al-v20.txt at the root of this distribution.
  * By using this software in any fashion, you are agreeing to be bound by
  * the terms of this license.
  *
- * You must not remove this notice, or any other, from this software.
+ * <p>You must not remove this notice, or any other, from this software.
  */
 
 package net.whitbeck.rdbparser;
@@ -33,13 +33,12 @@ import java.util.List;
  */
 public final class RdbParser implements AutoCloseable {
 
-  private final static Charset ASCII = Charset.forName("ASCII");
+  private static final Charset ASCII = Charset.forName("ASCII");
 
-  private static final int
-    EOF = 0xff,
-    DB_SELECT = 0xfe,
-    KEY_VALUE_SECS = 0xfd,
-    KEY_VALUE_MS = 0xfc;
+  private static final int EOF = 0xff;
+  private static final int DB_SELECT = 0xfe;
+  private static final int KEY_VALUE_SECS = 0xfd;
+  private static final int KEY_VALUE_MS = 0xfc;
 
   private static final int BUFFER_SIZE = 8 * 1024;
 
@@ -86,10 +85,10 @@ public final class RdbParser implements AutoCloseable {
     return buf.get() & 0xff;
   }
 
-  private byte[] readBytes(int n) throws IOException {
-    int rem = n;
+  private byte[] readBytes(int numBytes) throws IOException {
+    int rem = numBytes;
     int pos = 0;
-    byte[] bs = new byte[n];
+    byte[] bs = new byte[numBytes];
     while (rem > 0) {
       int avail = buf.remaining();
       if (avail >= rem) {
@@ -133,7 +132,7 @@ public final class RdbParser implements AutoCloseable {
    *
    * @return the next entry
    *
-   * @throws IOException
+   * @throws IOException if there is an error reading from the underlying channel.
    */
   public Entry readNext() throws IOException {
     if (!hasNext) {
@@ -144,18 +143,18 @@ public final class RdbParser implements AutoCloseable {
         return null;
       }
     }
-    int b = readByte();
-    switch (b) {
-    case EOF:
-      return readEOF();
-    case DB_SELECT:
-      return readDbSelect();
-    case KEY_VALUE_SECS:
-      return readEntrySeconds();
-    case KEY_VALUE_MS:
-      return readEntryMillis();
-    default:
-      return readEntry(null, b);
+    int valueType = readByte();
+    switch (valueType) {
+      case EOF:
+        return readEof();
+      case DB_SELECT:
+        return readDbSelect();
+      case KEY_VALUE_SECS:
+        return readEntrySeconds();
+      case KEY_VALUE_MS:
+        return readEntryMillis();
+      default:
+        return readEntry(null, valueType);
     }
   }
 
@@ -167,8 +166,8 @@ public final class RdbParser implements AutoCloseable {
     return new byte[8];
   }
 
-  private Eof readEOF() throws IOException {
-    byte[] checksum = (version >= 5)? readChecksum() : getEmptyChecksum();
+  private Eof readEof() throws IOException {
+    byte[] checksum = version >= 5 ? readChecksum() : getEmptyChecksum();
     hasNext = false;
     return new Eof(checksum);
   }
@@ -178,52 +177,52 @@ public final class RdbParser implements AutoCloseable {
   }
 
   private long readLength() throws IOException {
-    int b = readByte();
+    int firstByte = readByte();
     // the first two bits determine the encoding
-    int flag = (b & 0xc0) >> 6;
+    int flag = (firstByte & 0xc0) >> 6;
     switch (flag) {
-    case 0: // length is read from the lower 6 bits
-      return b & 0x3f;
-    case 1: // one additional byte is read for a 14 bit encoding
-      return (((long)b & 0x3f) << 8) | ((long)readByte() & 0xff);
-    case 2: // read next four bytes as unsigned big-endian
-      byte[] bs = readBytes(4);
-      return ((((long)bs[0] & 0xff) << 24) |
-              (((long)bs[1] & 0xff) << 16) |
-              (((long)bs[2] & 0xff) <<  8) |
-              (((long)bs[3] & 0xff) <<  0));
-    default:
-      throw new IllegalStateException("Expected a length, but got a special string encoding.");
+      case 0: // length is read from the lower 6 bits
+        return firstByte & 0x3f;
+      case 1: // one additional byte is read for a 14 bit encoding
+        return (((long)firstByte & 0x3f) << 8) | ((long)readByte() & 0xff);
+      case 2: // read next four bytes as unsigned big-endian
+        byte[] bs = readBytes(4);
+        return ((long)bs[0] & 0xff) << 24
+             | ((long)bs[1] & 0xff) << 16
+             | ((long)bs[2] & 0xff) <<  8
+             | ((long)bs[3] & 0xff) <<  0;
+      default:
+        throw new IllegalStateException("Expected a length, but got a special string encoding.");
     }
   }
 
   private byte[] readStringEncoded() throws IOException {
-    int b = readByte();
+    int firstByte = readByte();
     // the first two bits determine the encoding
-    int flag = (b & 0xc0) >> 6;
+    int flag = (firstByte & 0xc0) >> 6;
     int len;
     switch (flag) {
-    case 0: // length is read from the lower 6 bits
-      len = (b & 0x3f);
-      return readBytes(len);
-    case 1: // one additional byte is read for a 14 bit encoding
-      len = ((b & 0x3f) << 8) | (readByte() & 0xff);
-      return readBytes(len);
-    case 2: // read next four bytes as unsigned big-endian
-      byte[] bs = readBytes(4);
-      len = ((((int)bs[0] & 0xff) << 24) |
-             (((int)bs[1] & 0xff) << 16) |
-             (((int)bs[2] & 0xff) <<  8) |
-             (((int)bs[3] & 0xff) <<  0));
-      if (len < 0) {
-        throw new IllegalStateException("Strings longer than " + Integer.MAX_VALUE +
-                                        "bytes are not supported.");
-      }
-      return readBytes(len);
-    case 3:
-      return readSpecialStringEncoded(b & 0x3f);
-    default: // never reached
-      return null;
+      case 0: // length is read from the lower 6 bits
+        len = firstByte & 0x3f;
+        return readBytes(len);
+      case 1: // one additional byte is read for a 14 bit encoding
+        len = ((firstByte & 0x3f) << 8) | (readByte() & 0xff);
+        return readBytes(len);
+      case 2: // read next four bytes as unsigned big-endian
+        byte[] bs = readBytes(4);
+        len = ((int)bs[0] & 0xff) << 24
+            | ((int)bs[1] & 0xff) << 16
+            | ((int)bs[2] & 0xff) <<  8
+            | ((int)bs[3] & 0xff) <<  0;
+        if (len < 0) {
+          throw new IllegalStateException("Strings longer than " + Integer.MAX_VALUE
+                                          + "bytes are not supported.");
+        }
+        return readBytes(len);
+      case 3:
+        return readSpecialStringEncoded(firstByte & 0x3f);
+      default: // never reached
+        return null;
     }
   }
 
@@ -232,18 +231,18 @@ public final class RdbParser implements AutoCloseable {
   }
 
   private byte[] readInteger16Bits() throws IOException {
-    long l = ((((long)readByte() & 0xff) << 0) |
-              (((long)readByte() & 0xff) << 8));
-    return String.valueOf(l).getBytes(ASCII);
+    long val = ((long)readByte() & 0xff) << 0
+             | ((long)readByte() & 0xff) << 8;
+    return String.valueOf(val).getBytes(ASCII);
   }
 
   private byte[] readInteger32Bits() throws IOException {
     byte[] bs = readBytes(4);
-    long l = ((((long)bs[3] & 0xff) << 24) |
-              (((long)bs[2] & 0xff) << 16) |
-              (((long)bs[1] & 0xff) <<  8) |
-              (((long)bs[0] & 0xff) <<  0));
-    return String.valueOf(l).getBytes(ASCII);
+    long val = ((long)bs[3] & 0xff) << 24
+             | ((long)bs[2] & 0xff) << 16
+             | ((long)bs[1] & 0xff) <<  8
+             | ((long)bs[0] & 0xff) <<  0;
+    return String.valueOf(val).getBytes(ASCII);
   }
 
   private byte[] readLzfString() throws IOException {
@@ -258,29 +257,29 @@ public final class RdbParser implements AutoCloseable {
   private byte[] readDoubleString() throws IOException {
     int len = readByte();
     switch (len) {
-    case 0xff:
-      return DoubleBytes.NEGATIVE_INFINITY;
-    case 0xfe:
-      return DoubleBytes.POSITIVE_INFINITY;
-    case 0xfd:
-      return DoubleBytes.NaN;
-    default:
-      return readBytes(len);
+      case 0xff:
+        return DoubleBytes.NEGATIVE_INFINITY;
+      case 0xfe:
+        return DoubleBytes.POSITIVE_INFINITY;
+      case 0xfd:
+        return DoubleBytes.NaN;
+      default:
+        return readBytes(len);
     }
   }
 
   private byte[] readSpecialStringEncoded(int type) throws IOException {
     switch (type) {
-    case 0:
-      return readInteger8Bits();
-    case 1:
-      return readInteger16Bits();
-    case 2:
-      return readInteger32Bits();
-    case 3:
-      return readLzfString();
-    default:
-      throw new IllegalStateException("Unknown special encoding: " + type);
+      case 0:
+        return readInteger8Bits();
+      case 1:
+        return readInteger16Bits();
+      case 2:
+        return readInteger32Bits();
+      case 3:
+        return readLzfString();
+      default:
+        throw new IllegalStateException("Unknown special encoding: " + type);
     }
   }
 
@@ -295,28 +294,28 @@ public final class RdbParser implements AutoCloseable {
   private KeyValuePair readEntry(byte[] ts, int valueType) throws IOException {
     byte[] key = readStringEncoded();
     switch (valueType) {
-    case 0:
-      return readValue(ts, key);
-    case 1:
-      return readList(ts, key);
-    case 2:
-      return readSet(ts, key);
-    case 3:
-      return readSortedSet(ts, key);
-    case 4:
-      return readHash(ts, key);
-    case 9:
-      return readZipMap(ts, key);
-    case 10:
-      return readZipList(ts, key);
-    case 11:
-      return readIntSet(ts, key);
-    case 12:
-      return readSortedSetAsZipList(ts, key);
-    case 13:
-      return readHashmapAsZipList(ts, key);
-    default:
-      throw new UnsupportedOperationException("Unknown value type: " + valueType);
+      case 0:
+        return readValue(ts, key);
+      case 1:
+        return readList(ts, key);
+      case 2:
+        return readSet(ts, key);
+      case 3:
+        return readSortedSet(ts, key);
+      case 4:
+        return readHash(ts, key);
+      case 9:
+        return readZipMap();
+      case 10:
+        return readZipList(ts, key);
+      case 11:
+        return readIntSet(ts, key);
+      case 12:
+        return readSortedSetAsZipList(ts, key);
+      case 13:
+        return readHashmapAsZipList(ts, key);
+      default:
+        throw new UnsupportedOperationException("Unknown value type: " + valueType);
     }
   }
 
@@ -327,12 +326,12 @@ public final class RdbParser implements AutoCloseable {
   private KeyValuePair readList(byte[] ts, byte[] key) throws IOException {
     long len = readLength();
     if (len > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException("Lists with more than " + Integer.MAX_VALUE +
-                                         " elements are not supported.");
+      throw new IllegalArgumentException("Lists with more than " + Integer.MAX_VALUE
+                                         + " elements are not supported.");
     }
     int size = (int)len;
     List<byte[]> list = new ArrayList<byte[]>(size);
-    for (int i=0; i<size; ++i) {
+    for (int i = 0; i < size; ++i) {
       list.add(readStringEncoded());
     }
     return new KeyValuePair(ValueType.LIST, ts, key, list);
@@ -341,12 +340,12 @@ public final class RdbParser implements AutoCloseable {
   private KeyValuePair readSet(byte[] ts, byte[] key) throws IOException {
     long len = readLength();
     if (len > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException("Sets with more than " + Integer.MAX_VALUE +
-                                         " elements are not supported.");
+      throw new IllegalArgumentException("Sets with more than " + Integer.MAX_VALUE
+                                         + " elements are not supported.");
     }
     int size = (int)len;
     List<byte[]> set = new ArrayList<byte[]>(size);
-    for (int i=0; i<size; ++i) {
+    for (int i = 0; i < size; ++i) {
       set.add(readStringEncoded());
     }
     return new KeyValuePair(ValueType.SET, ts, key, set);
@@ -355,12 +354,12 @@ public final class RdbParser implements AutoCloseable {
   private KeyValuePair readSortedSet(byte[] ts, byte[] key) throws IOException {
     long len = readLength();
     if (len > (Integer.MAX_VALUE / 2)) {
-      throw new IllegalArgumentException("SortedSets with more than " + (Integer.MAX_VALUE / 2) +
-                                         " elements are not supported.");
+      throw new IllegalArgumentException("SortedSets with more than " + (Integer.MAX_VALUE / 2)
+                                         + " elements are not supported.");
     }
     int size = (int)len;
     List<byte[]> valueScoresPairs = new ArrayList<byte[]>(2 * size);
-    for (int i=0; i<size; ++i) {
+    for (int i = 0; i < size; ++i) {
       valueScoresPairs.add(readStringEncoded());
       valueScoresPairs.add(readDoubleString());
     }
@@ -370,21 +369,21 @@ public final class RdbParser implements AutoCloseable {
   private KeyValuePair readHash(byte[] ts, byte[] key) throws IOException {
     long len = readLength();
     if (len > (Integer.MAX_VALUE / 2)) {
-      throw new IllegalArgumentException("Hashes with more than " + (Integer.MAX_VALUE / 2) +
-                                         " elements are not supported.");
+      throw new IllegalArgumentException("Hashes with more than " + (Integer.MAX_VALUE / 2)
+                                         + " elements are not supported.");
     }
     int size = (int)len;
     List<byte[]> kvPairs = new ArrayList<byte[]>(2 * size);
-    for (int i=0; i<size; ++i) {
+    for (int i = 0; i < size; ++i) {
       kvPairs.add(readStringEncoded());
       kvPairs.add(readStringEncoded());
     }
     return new KeyValuePair(ValueType.HASH, ts, key, kvPairs);
   }
 
-  private KeyValuePair readZipMap(byte[] ts, byte[] key) throws IOException {
-    throw new UnsupportedOperationException("Parsing zipmaps (deprecated as of redis 2.6) " +
-                                            "is not supported!");
+  private KeyValuePair readZipMap() throws IOException {
+    throw new UnsupportedOperationException("Parsing zipmaps (deprecated as of redis 2.6) "
+                                            + "is not supported!");
   }
 
   private KeyValuePair readZipList(byte[] ts, byte[] key) throws IOException {
@@ -401,13 +400,14 @@ public final class RdbParser implements AutoCloseable {
   }
 
   private KeyValuePair readHashmapAsZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(ValueType.HASHMAP_AS_ZIPLIST, ts, key, new ZipList(readStringEncoded()));
+    return new KeyValuePair(ValueType.HASHMAP_AS_ZIPLIST, ts, key,
+                            new ZipList(readStringEncoded()));
   }
 
   /**
    * Closes the underlying file or stream.
    *
-   * @throws IOException
+   * @throws IOException from closing the underlying channel.
    */
   @Override
   public void close() throws IOException {

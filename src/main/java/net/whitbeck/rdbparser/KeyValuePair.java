@@ -1,13 +1,13 @@
 /**
  * Copyright (c) 2015-2016 John Whitbeck. All rights reserved.
  *
- * The use and distribution terms for this software are covered by the
+ * <p>The use and distribution terms for this software are covered by the
  * Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0.txt)
  * which can be found in the file al-v20.txt at the root of this distribution.
  * By using this software in any fashion, you are agreeing to be bound by
  * the terms of this license.
  *
- * You must not remove this notice, or any other, from this software.
+ * <p>You must not remove this notice, or any other, from this software.
  */
 
 package net.whitbeck.rdbparser;
@@ -93,8 +93,8 @@ public final class KeyValuePair implements Entry {
   }
 
   /**
-   * Returns true if this key/value pair as an expiry (either in seconds or milliseconds) associated with it,
-   * false otherwise.
+   * Returns true if this key/value pair as an expiry (either in seconds or milliseconds) associated
+   * with it, false otherwise.
    *
    * @return whether or not this object has an expiry.
    */
@@ -103,8 +103,8 @@ public final class KeyValuePair implements Entry {
   }
 
   /**
-   * Returns the expiry in milliseconds. If the initial expiry was set in seconds in redis, the expiry is
-   * converted to milliseconds. Throws an IllegalStateException if not expiry is present.
+   * Returns the expiry in milliseconds. If the initial expiry was set in seconds in redis, the
+   * expiry is converted to milliseconds. Throws an IllegalStateException if not expiry is present.
    *
    * @return the expiry in milliseconds.
    */
@@ -114,12 +114,14 @@ public final class KeyValuePair implements Entry {
     }
     if (ts != null) {
       switch (ts.length) {
-      case 4:
-        expiry = parseExpiry4Bytes(); break;
-      case 8:
-        expiry = parseExpiry8Bytes(); break;
-      default:
-        throw new IllegalStateException("Invalid number of timestamp bytes");
+        case 4:
+          expiry = parseExpiry4Bytes();
+          break;
+        case 8:
+          expiry = parseExpiry8Bytes();
+          break;
+        default:
+          throw new IllegalStateException("Invalid number of timestamp bytes");
       }
       ts = null;
     }
@@ -127,21 +129,21 @@ public final class KeyValuePair implements Entry {
   }
 
   private long parseExpiry4Bytes() {
-    return 1000L * ((((long)ts[3] & 0xff) << 24) |
-                    (((long)ts[2] & 0xff) << 16) |
-                    (((long)ts[1] & 0xff) <<  8) |
-                    (((long)ts[0] & 0xff) <<  0));
+    return 1000L * ( ((long)ts[3] & 0xff) << 24
+                   | ((long)ts[2] & 0xff) << 16
+                   | ((long)ts[1] & 0xff) <<  8
+                   | ((long)ts[0] & 0xff) <<  0);
   }
 
   private long parseExpiry8Bytes() {
-    return ((((long)ts[7] & 0xff) << 56) |
-            (((long)ts[6] & 0xff) << 48) |
-            (((long)ts[5] & 0xff) << 40) |
-            (((long)ts[4] & 0xff) << 32) |
-            (((long)ts[3] & 0xff) << 24) |
-            (((long)ts[2] & 0xff) << 16) |
-            (((long)ts[1] & 0xff) <<  8) |
-            (((long)ts[0] & 0xff) <<  0));
+    return ((long)ts[7] & 0xff) << 56
+         | ((long)ts[6] & 0xff) << 48
+         | ((long)ts[5] & 0xff) << 40
+         | ((long)ts[4] & 0xff) << 32
+         | ((long)ts[3] & 0xff) << 24
+         | ((long)ts[2] & 0xff) << 16
+         | ((long)ts[1] & 0xff) <<  8
+         | ((long)ts[0] & 0xff) <<  0;
   }
 
 
@@ -157,7 +159,7 @@ public final class KeyValuePair implements Entry {
   /**
    * Returns the list of values (as byte-arrays) associated with this key/value pair.
    *
-   * This values in this list depend on the value type.
+   * <p>The values in this list depend on the value type.
    *
    * <ul>
    *  <li>VALUE: A singleton with the value.</li>
