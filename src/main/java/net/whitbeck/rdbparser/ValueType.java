@@ -70,5 +70,10 @@ public enum ValueType {
    * A compact encoding for small hashes in which key/value pairs are flattened and stored in a
    * ZipList.
    */
-  HASHMAP_AS_ZIPLIST;
+  HASHMAP_AS_ZIPLIST,
+
+  /**
+   * A linked list of ziplists to achieve good compression on lists of any length
+   */
+  QUICKLIST;
 }

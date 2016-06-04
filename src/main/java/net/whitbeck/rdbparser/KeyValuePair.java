@@ -56,13 +56,7 @@ public final class KeyValuePair implements Entry {
     StringBuilder sb = new StringBuilder();
     sb.append(EntryType.KEY_VALUE_PAIR);
     sb.append(" (key: ");
-    for (byte b : key) {
-      if (b > 31 && b < 127) { // printable ascii characters
-        sb.append((char)b);
-      } else {
-        sb.append(String.format("\\x%02x", (int)b & 0xff));
-      }
-    }
+    sb.append(StringUtils.getPrintableString(key));
     if (hasExpiry()) {
       sb.append(", expiry: ");
       sb.append(getExpiryMillis());

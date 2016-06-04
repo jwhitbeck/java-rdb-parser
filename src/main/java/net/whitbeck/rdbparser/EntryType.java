@@ -41,5 +41,21 @@ public enum EntryType {
    *
    * @see KeyValuePair
    */
-  KEY_VALUE_PAIR;
+  KEY_VALUE_PAIR,
+
+  /**
+   * Denotes an entry containing the database hash table size and the expiry hash table size. These
+   * entries are marked by a 0xfb byte in the RDB file.
+   *
+   * @see ResizeDb
+   */
+  RESIZE_DB,
+
+  /**
+   * Denotes an auxiliary field for storing a key/value pair containing metadata about the RDB
+   * file. These entries are marked by a 0xfa byte in the RDB file.
+   *
+   * @see Aux
+   */
+  AUX;
 }

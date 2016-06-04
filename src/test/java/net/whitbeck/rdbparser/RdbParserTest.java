@@ -115,13 +115,40 @@ public class RdbParserTest {
     jedis.flushAll();
     jedis.save();
     try (RdbParser p = openTestParser()) {
+      // AUX redis-ver = 3.2.0
       Entry t = p.readNext();
+      Assert.assertTrue(t.getType() == EntryType.AUX);
+      Aux aux = (Aux)t;
+      Assert.assertArrayEquals("redis-ver".getBytes("ASCII"), aux.getKey());
+      Assert.assertArrayEquals("3.2.0".getBytes("ASCII"), aux.getValue());
+      // AUX redis-bits = 64
+      t = p.readNext();
+      Assert.assertTrue(t.getType() == EntryType.AUX);
+      aux = (Aux)t;
+      Assert.assertArrayEquals("redis-bits".getBytes("ASCII"), aux.getKey());
+      Assert.assertArrayEquals("64".getBytes("ASCII"), aux.getValue());
+      // AUX ctime
+      t = p.readNext();
+      Assert.assertTrue(t.getType() == EntryType.AUX);
+      aux = (Aux)t;
+      Assert.assertArrayEquals("ctime".getBytes("ASCII"), aux.getKey());
+      // AUX used-mem = 821176
+      t = p.readNext();
+      Assert.assertTrue(t.getType() == EntryType.AUX);
+      aux = (Aux)t;
+      Assert.assertArrayEquals("used-mem".getBytes("ASCII"), aux.getKey());
+      // EOF
+      t = p.readNext();
       Assert.assertTrue(t.getType() == EntryType.EOF);
-      Eof eof = (Eof)t;
-      Assert.assertArrayEquals(new byte[]{(byte)0xdc, (byte)0xb3, (byte)0x43, (byte)0xf0,
-                                          (byte)0x5a, (byte)0xdc, (byte)0xf2, (byte)0x56},
-                               eof.getChecksum());
+      // Nothing after EOF
       Assert.assertNull(p.readNext());
+    }
+  }
+
+  void skipAux(RdbParser p) throws IOException {
+    // Skip the four AUX entries at the beginning of the file.
+    for (int i=0; i<4; i++) {
+      p.readNext();
     }
   }
 
@@ -134,11 +161,18 @@ public class RdbParserTest {
     jedis.set("foo", "baz");
     jedis.save();
     try (RdbParser p = openTestParser()) {
+      skipAux(p);
       // DB_SELECTOR 0
       Entry t = p.readNext();
       Assert.assertEquals(EntryType.DB_SELECT, t.getType());
       DbSelect dbSelect = (DbSelect)t;
       Assert.assertEquals(0, dbSelect.getId());
+      // Resize DB
+      t = p.readNext();
+      Assert.assertEquals(EntryType.RESIZE_DB, t.getType());
+      ResizeDb resizeDb = (ResizeDb)t;
+      Assert.assertEquals(resizeDb.getDbHashTableSize(), 1);
+      Assert.assertEquals(resizeDb.getExpiryHashTableSize(), 0);
       // foo:bar
       t = p.readNext();
       Assert.assertEquals(EntryType.KEY_VALUE_PAIR, t.getType());
@@ -151,6 +185,12 @@ public class RdbParserTest {
       Assert.assertTrue(t.getType() == EntryType.DB_SELECT);
       dbSelect = (DbSelect)t;
       Assert.assertEquals(1, dbSelect.getId());
+      // Resize DB
+      t = p.readNext();
+      Assert.assertEquals(EntryType.RESIZE_DB, t.getType());
+      resizeDb = (ResizeDb)t;
+      Assert.assertEquals(resizeDb.getDbHashTableSize(), 1);
+      Assert.assertEquals(resizeDb.getExpiryHashTableSize(), 0);
       // foo:baz
       t = p.readNext();
       Assert.assertEquals(EntryType.KEY_VALUE_PAIR, t.getType());
@@ -162,6 +202,12 @@ public class RdbParserTest {
       t = p.readNext();
       Assert.assertTrue(t.getType() == EntryType.EOF);
     }
+  }
+
+  void skipToFirstKeyValuePair(RdbParser p) throws IOException {
+    skipAux(p); // Skip the AUX entries at top of file
+    p.readNext(); // Skip the DB_SELECTOR entry
+    p.readNext(); // Skip the RESIZE_DB entry
   }
 
   @Test
@@ -176,7 +222,7 @@ public class RdbParserTest {
     jedis.pexpireAt("millis", expiryMillis);
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       for (int i=0; i<3; ++i) {
         KeyValuePair kvp = (KeyValuePair)p.readNext();
         String k = new String(kvp.getKey(), "ASCII");
@@ -204,7 +250,14 @@ public class RdbParserTest {
     jedis.set(new byte[]{0, 1, 2, 3}, "val".getBytes("ASCII"));
     jedis.save();
     try (RdbParser p = openTestParser()) {
+      // AUX entries
+      Assert.assertEquals(p.readNext().toString(), "AUX (k: redis-ver, v: 3.2.0)");
+      Assert.assertEquals(p.readNext().toString(), "AUX (k: redis-bits, v: 64)");
+      Assert.assertTrue(Pattern.matches("AUX \\(k: ctime, v: \\d{10}\\)", p.readNext().toString()));
+      Assert.assertTrue(Pattern.matches("AUX \\(k: used-mem, v: \\d+\\)", p.readNext().toString()));
+      // DB 0
       Assert.assertEquals(p.readNext().toString(), "DB_SELECT (0)");
+      Assert.assertEquals(p.readNext().toString(), "RESIZE_DB (db: 4, expiry: 1)");
       for (int i=0; i<4; ++i) {
         KeyValuePair kvp = (KeyValuePair)p.readNext();
         byte[] k = kvp.getKey();
@@ -231,7 +284,7 @@ public class RdbParserTest {
     jedis.set(key, val);
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertArrayEquals(key, kvp.getKey());
       Assert.assertArrayEquals(val, kvp.getValues().get(0));
@@ -245,7 +298,7 @@ public class RdbParserTest {
     Assert.assertEquals("int", jedis.objectEncoding("foo"));
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("12", str(kvp.getValues().get(0)));
@@ -259,7 +312,7 @@ public class RdbParserTest {
     Assert.assertEquals("int", jedis.objectEncoding("foo"));
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("1234", str(kvp.getValues().get(0)));
@@ -273,7 +326,7 @@ public class RdbParserTest {
     Assert.assertEquals("int", jedis.objectEncoding("foo"));
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("123456789", str(kvp.getValues().get(0)));
@@ -287,7 +340,7 @@ public class RdbParserTest {
     Assert.assertEquals("raw", jedis.objectEncoding("foo"));
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -298,15 +351,14 @@ public class RdbParserTest {
   @Test
   public void list() throws Exception {
     jedis.flushAll();
-    String origValue = jedis.configGet("list-max-ziplist-entries").get(1);
-    jedis.configSet("list-max-ziplist-entries", "0");
+    jedis.configSet("list-max-ziplist-size", "0");
     jedis.lpush("foo", "bar", "1234", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     jedis.save();
-    jedis.configSet("list-max-ziplist-entries", origValue);
+    jedis.configSet("list-max-ziplist-size", "1000");
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
-      Assert.assertTrue(ValueType.LIST == kvp.getValueType());
+      Assert.assertTrue(ValueType.QUICKLIST == kvp.getValueType());
       List<byte[]> list = kvp.getValues();
       Assert.assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", str(list.get(0)));
       Assert.assertEquals("1234", str(list.get(1)));
@@ -324,7 +376,7 @@ public class RdbParserTest {
     }
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.SET == kvp.getValueType());
       Set<String> parsedSet = new HashSet<String>();
@@ -350,7 +402,7 @@ public class RdbParserTest {
     jedis.save();
     jedis.configSet("zset-max-ziplist-entries", origValue);
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.SORTED_SET == kvp.getValueType());
       Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
@@ -376,7 +428,7 @@ public class RdbParserTest {
     jedis.save();
     jedis.configSet("hash-max-ziplist-entries", origValue);
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.HASH == kvp.getValueType());
       Map<String,String> parsedMap = new HashMap<String,String>();
@@ -388,7 +440,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void zipList() throws Exception {
+  public void quickList() throws Exception {
     List<String> list = Arrays.asList("loremipsum", // string
                                       "10", // 4 bit integer
                                       "30", // 8 bit integer
@@ -408,9 +460,9 @@ public class RdbParserTest {
     }
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
-      Assert.assertTrue(ValueType.ZIPLIST == kvp.getValueType());
+      Assert.assertTrue(ValueType.QUICKLIST == kvp.getValueType());
       List<String> parsedList = new ArrayList<String>();
       for (byte[] val : kvp.getValues()) {
         parsedList.add(str(val));
@@ -430,7 +482,7 @@ public class RdbParserTest {
     }
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.INTSET == kvp.getValueType());
       Set<String> parsedInts = new HashSet<String>();
@@ -451,7 +503,7 @@ public class RdbParserTest {
     }
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.INTSET == kvp.getValueType());
       Set<String> parsedInts = new HashSet<String>();
@@ -472,7 +524,7 @@ public class RdbParserTest {
     }
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.INTSET == kvp.getValueType());
       Set<String> parsedInts = new HashSet<String>();
@@ -495,7 +547,7 @@ public class RdbParserTest {
     }
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.SORTED_SET_AS_ZIPLIST == kvp.getValueType());
       Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
@@ -518,7 +570,7 @@ public class RdbParserTest {
     }
     jedis.save();
     try (RdbParser p = openTestParser()) {
-      p.readNext(); // skip DB_SELECTOR
+      skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertTrue(ValueType.HASHMAP_AS_ZIPLIST == kvp.getValueType());
       Map<String,String> parsedMap = new HashMap<String,String>();

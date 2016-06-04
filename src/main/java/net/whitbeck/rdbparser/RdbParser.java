@@ -39,6 +39,8 @@ public final class RdbParser implements AutoCloseable {
   private static final int DB_SELECT = 0xfe;
   private static final int KEY_VALUE_SECS = 0xfd;
   private static final int KEY_VALUE_MS = 0xfc;
+  private static final int RESIZE_DB = 0xfb;
+  private static final int AUX = 0xfa;
 
   private static final int BUFFER_SIZE = 8 * 1024;
 
@@ -119,7 +121,7 @@ public final class RdbParser implements AutoCloseable {
       throw new IllegalStateException("Not a valid redis RDB file");
     }
     version = readVersion();
-    if (version < 1 || version > 6) {
+    if (version < 1 || version > 7) {
       throw new IllegalStateException("Unknown version");
     }
     isInitialized = true;
@@ -149,6 +151,10 @@ public final class RdbParser implements AutoCloseable {
         return readEof();
       case DB_SELECT:
         return readDbSelect();
+      case RESIZE_DB:
+        return readResizeDb();
+      case AUX:
+        return readAux();
       case KEY_VALUE_SECS:
         return readEntrySeconds();
       case KEY_VALUE_MS:
@@ -174,6 +180,14 @@ public final class RdbParser implements AutoCloseable {
 
   private DbSelect readDbSelect() throws IOException {
     return new DbSelect(readLength());
+  }
+
+  private ResizeDb readResizeDb() throws IOException {
+    return new ResizeDb(readLength(), readLength());
+  }
+
+  private Aux readAux() throws IOException {
+    return new Aux(readStringEncoded(), readStringEncoded());
   }
 
   private long readLength() throws IOException {
@@ -314,6 +328,8 @@ public final class RdbParser implements AutoCloseable {
         return readSortedSetAsZipList(ts, key);
       case 13:
         return readHashmapAsZipList(ts, key);
+      case 14:
+        return readQuickList(ts, key);
       default:
         throw new UnsupportedOperationException("Unknown value type: " + valueType);
     }
@@ -402,6 +418,20 @@ public final class RdbParser implements AutoCloseable {
   private KeyValuePair readHashmapAsZipList(byte[] ts, byte[] key) throws IOException {
     return new KeyValuePair(ValueType.HASHMAP_AS_ZIPLIST, ts, key,
                             new ZipList(readStringEncoded()));
+  }
+
+  private KeyValuePair readQuickList(byte[] ts, byte[] key) throws IOException {
+    long len = readLength();
+    if (len > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("Quicklists with more than " + Integer.MAX_VALUE
+                                         + " nested Ziplists are not supported.");
+    }
+    int size = (int)len;
+    List<byte[]> ziplists = new ArrayList<byte[]>(size);
+    for (int i = 0; i < size; ++i) {
+      ziplists.add(readStringEncoded());
+    }
+    return new KeyValuePair(ValueType.QUICKLIST, ts, key, new QuickList(ziplists));
   }
 
   /**
