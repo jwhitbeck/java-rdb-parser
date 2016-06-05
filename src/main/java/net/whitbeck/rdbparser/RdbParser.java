@@ -72,6 +72,15 @@ public final class RdbParser implements AutoCloseable {
     this(new File(filename));
   }
 
+  /**
+   * Returns the version of the RDB file being parsed.
+   *
+   * @return the RDB file version
+   */
+  public int getRdbVersion() {
+    return version;
+  }
+
   private void fillBuffer() throws IOException {
     buf.clear();
     if (ch.read(buf) == -1) {
