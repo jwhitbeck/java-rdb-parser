@@ -142,5 +142,4 @@ lists of values.
 
 ## References
 
-- [RDB file format](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format)
-- [RDB file format history](https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile)
+- [RDB file format](http://rdb.fnordig.de/file_format.html)

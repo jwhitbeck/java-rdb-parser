@@ -28,13 +28,8 @@
  * <p>References:
  * <ul>
  *   <li>
- *     <a href="https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format">
+ *     <a href="http://rdb.fnordig.de/file_format.html">
  *      RDB file format
- *     </a>
- *   </li>
- *   <li>
- *     <a href="https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile">
- *       RDB file format history
  *     </a>
  *   </li>
  * </ul>
