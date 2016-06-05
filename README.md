@@ -4,7 +4,7 @@
 
 ## Overview
 
-A very simple Java library for parsing [Redis](http://redis.io) RDB files.
+A simple Java library for parsing [Redis](http://redis.io) RDB files.
 
 This library does the minimal amount of work to read entries (e.g. a new DB selector, or a key/value pair with
 an expiry) from an RDB file. In particular, it does not make any assumptions about string encodings or the
@@ -12,8 +12,8 @@ types of objects to coerce Redis data into, thereby limiting itself to returning
 arrays for keys and values. Furthermore, it performs lazy decoding of the packed encodings (ZipList, Hashmap
 as ZipList, Sorted Set as ZipList, and Intset) such that those are only decoded when needed.
 
-The ZipMap encoding, deprecated as of redis 2.6, is not currently supported. If you need it, please open a
-Github issue.
+This library supports the RDB files created by redis 2.8 through 3.2. The ZipMap encoding, deprecated as of
+redis 2.6, is not currently supported. If you need it, please open a Github issue.
 
 To use this library, including the following dependency in your `pom.xml`.
 
@@ -70,7 +70,7 @@ import net.whitbeck.rdbparser.*;
 
 public class RdbFilePrinter {
 
-  public void printRdbFile(File file) throws Exception {
+  public static void printRdbFile(File file) throws Exception {
     try (RdbParser parser = new RdbParser(file)) {
       Entry e;
       while ((e = parser.readNext()) != null) {
@@ -78,6 +78,7 @@ public class RdbFilePrinter {
 
         case DB_SELECT:
           System.out.println("Processing DB: " + ((DbSelect)e).getId());
+          System.out.println("------------");
           break;
 
         case EOF:
@@ -86,6 +87,7 @@ public class RdbFilePrinter {
             System.out.print(String.format("%02x", b & 0xff));
           }
           System.out.println();
+          System.out.println("------------");
           break;
 
         case KEY_VALUE_PAIR:
@@ -101,17 +103,16 @@ public class RdbFilePrinter {
             System.out.print(new String(val, "ASCII") + " ");
           }
           System.out.println();
+          System.out.println("------------");
           break;
         }
-        System.out.println("------------");
       }
     }
   }
-
 }
 ```
 
-Call this function on the `dump.rdb` file. The output will be:
+Call this function on the `dump.rdb` file. The output will look like:
 
 ```
 Processing DB: 0
