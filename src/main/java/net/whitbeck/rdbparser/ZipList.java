@@ -37,7 +37,7 @@ final class ZipList implements LazyList {
     int idx = 0;
     while (idx < num) {
       // skip length of previous entry. If len is <= 253, it represents the length of the previous
-      // entry, otherwise, they next four bytes are used to store the length
+      // entry, otherwise, the next four bytes are used to store the length
       int prevLen = (int)envelope[pos++] & 0xff;
       if (prevLen > 0xfc) {
         pos += 4;
