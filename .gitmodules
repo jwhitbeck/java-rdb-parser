@@ -1,0 +1,6 @@
+[submodule "redis/3.2.11"]
+        path = redis/3.2.11
+        url = https://github.com/antirez/redis.git
+[submodule "redis/2.8.24"]
+        path = redis/2.8.24
+        url = https://github.com/antirez/redis.git

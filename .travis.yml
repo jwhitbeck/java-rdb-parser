@@ -1,5 +1,6 @@
 language: java
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y wget build-essential
-  - wget http://download.redis.io/releases/redis-3.2.0.tar.gz && tar xzvf redis-3.2.0.tar.gz && make -C redis-3.2.0 && sudo make -C redis-3.2.0 install
+  - sudo apt-get install -y wget build-essential git
+  - git submodule update
+  - make -C redis
