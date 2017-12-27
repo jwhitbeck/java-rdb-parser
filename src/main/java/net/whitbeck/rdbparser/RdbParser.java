@@ -328,7 +328,7 @@ public final class RdbParser implements AutoCloseable {
       case 4:
         return readHash(ts, key);
       case 9:
-        return readZipMap();
+        return readZipMap(ts, key);
       case 10:
         return readZipList(ts, key);
       case 11:
@@ -406,9 +406,8 @@ public final class RdbParser implements AutoCloseable {
     return new KeyValuePair(ValueType.HASH, ts, key, kvPairs);
   }
 
-  private KeyValuePair readZipMap() throws IOException {
-    throw new UnsupportedOperationException("Parsing zipmaps (deprecated as of redis 2.6) "
-                                            + "is not supported!");
+  private KeyValuePair readZipMap(byte[] ts, byte[] key) throws IOException {
+    return new KeyValuePair(ValueType.ZIPMAP, ts, key, new ZipMap(readStringEncoded()));
   }
 
   private KeyValuePair readZipList(byte[] ts, byte[] key) throws IOException {

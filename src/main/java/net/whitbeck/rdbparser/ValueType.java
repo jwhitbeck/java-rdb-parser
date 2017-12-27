@@ -46,7 +46,7 @@ public enum ValueType {
   HASH,
 
   /**
-   * A compact encoding for small hashes. Deprecated as of redis 2.6 and not currently supported.
+   * A compact encoding for small hashes. Deprecated as of redis 2.6.
    */
   ZIPMAP,
 

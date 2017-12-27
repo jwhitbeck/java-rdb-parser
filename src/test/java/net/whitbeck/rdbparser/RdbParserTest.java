@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,9 +66,12 @@ public class RdbParserTest {
 
     void startRedisServer() throws Exception {
       dumpFile.delete(); // start from an empty dump
+      File configFile = new File(workDir, "src/configs/redis.conf");
+      configFile.getParentFile().mkdirs();
+      Files.write(configFile.toPath(), bytes("port " + port + "\n"));
       proc = new ProcessBuilder()
           .directory(workDir)
-          .command("src/redis-server", "--port", "" + port)
+          .command("src/redis-server", configFile.getCanonicalPath())
           .start();
     }
 
@@ -83,6 +87,7 @@ public class RdbParserTest {
   }
 
   static final RedisServerInstance[] instances = new RedisServerInstance[]{
+    new RedisServerInstance("2.4.18", 6),
     new RedisServerInstance("2.8.24", 6),
     new RedisServerInstance("3.2.11", 7)
   };
@@ -140,6 +145,44 @@ public class RdbParserTest {
 
   static byte[] bytes(String s) throws Exception {
     return s.getBytes("ASCII");
+  }
+
+  static int compareVersions(String v1, String v2) {
+    String[] elems1 = v1.split("\\.");
+    String[] elems2 = v2.split("\\.");
+    int major1 = Integer.parseInt(elems1[0]);
+    int major2 = Integer.parseInt(elems2[0]);
+    if (major1 > major2) {
+      return 1;
+    } else if (major1 < major2) {
+      return -1;
+    } else {
+      int minor1 = Integer.parseInt(elems1[1]);
+      int minor2 = Integer.parseInt(elems2[1]);
+      if (minor1 > minor2) {
+        return 1;
+      } else if (minor1 < minor2) {
+        return -1;
+      } else {
+        int bugfix1 = Integer.parseInt(elems1[2]);
+        int bugfix2 = Integer.parseInt(elems2[2]);
+        if (bugfix1 > bugfix2) {
+          return 1;
+        } else if (bugfix1 < bugfix2) {
+          return -1;
+        } else {
+          return 0;
+        }
+      }
+    }
+  }
+
+  static boolean isEarlierThan(String version, String cmp) {
+    return compareVersions(version, cmp) < 0;
+  }
+
+  static boolean isLaterThan(String version, String cmp) {
+    return compareVersions(version, cmp) > 0;
   }
 
   void setTestFile(ByteBuffer buf) throws IOException {
@@ -292,16 +335,22 @@ public class RdbParserTest {
   public void expiries() throws Exception {
     long expirySecs = 3000000000L;
     long expiryMillis = 2000000000000L;
+    int n = 0;
     jedis.flushAll();
     jedis.set("noexpiry", "val");
+    n++;
     jedis.set("seconds", "val");
     jedis.expireAt("seconds", expirySecs);
-    jedis.set("millis", "val");
-    jedis.pexpireAt("millis", expiryMillis);
+    n++;
+    if (!isEarlierThan(redisVersion, "2.6.0")) {
+      jedis.set("millis", "val");
+      jedis.pexpireAt("millis", expiryMillis);
+      n++;
+    }
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      for (int i=0; i<3; ++i) {
+      for (int i=0; i<n; ++i) {
         KeyValuePair kvp = (KeyValuePair)p.readNext();
         String k = str(kvp.getKey());
         if (k.equals("noexpiry")) {
@@ -322,8 +371,8 @@ public class RdbParserTest {
     jedis.flushAll();
     jedis.set("simple-key", "val");
     jedis.set("key-with-expiry", "val");
-    long expiry = 2000000000000L;
-    jedis.pexpireAt("key-with-expiry", expiry);
+    long expiry = 2000000000L;
+    jedis.expireAt("key-with-expiry", expiry);
     jedis.lpush("list-key", "one", "two", "three");
     jedis.set(new byte[]{0, 1, 2, 3}, bytes("val"));
     jedis.save();
@@ -347,7 +396,8 @@ public class RdbParserTest {
           Assert.assertEquals(kvp.toString(), "KEY_VALUE_PAIR (key: simple-key, 1 value)");
         } else if (Arrays.equals(k, bytes("key-with-expiry"))) {
           Assert.assertEquals(kvp.toString(),
-                              "KEY_VALUE_PAIR (key: key-with-expiry, expiry: " + expiry+ ", 1 value)");
+                              "KEY_VALUE_PAIR (key: key-with-expiry, expiry: "
+                              + expiry * 1000 + ", 1 value)");
         } else if (Arrays.equals(k, bytes("list-key"))) {
           Assert.assertEquals(kvp.toString(), "KEY_VALUE_PAIR (key: list-key, 3 values)");
         } else if (Arrays.equals(k, new byte[]{0, 1, 2, 3})) {
@@ -505,18 +555,20 @@ public class RdbParserTest {
 
   @Test
   public void hash() throws Exception {
+    String maxEntriesKey =
+        isEarlierThan(redisVersion, "2.6.0")? "hash-max-zipmap-entries" : "hash-max-ziplist-entries";
+    String origMaxEntriesValue = jedis.configGet(maxEntriesKey).get(1);
+    jedis.configSet(maxEntriesKey, "0");
     Map<String, String> map = new HashMap<String, String>();
     map.put("one", "loremipsum");
     map.put("two", "2");
     map.put("three", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     jedis.flushAll();
-    String origValue = jedis.configGet("hash-max-ziplist-entries").get(1);
-    jedis.configSet("hash-max-ziplist-entries", "0");
     for (Map.Entry<String, String> e : map.entrySet()) {
       jedis.hset("foo", e.getKey(), e.getValue());
     }
     jedis.save();
-    jedis.configSet("hash-max-ziplist-entries", origValue);
+    jedis.configSet(maxEntriesKey, origMaxEntriesValue);
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair)p.readNext();
@@ -652,24 +704,51 @@ public class RdbParserTest {
 
   @Test
   public void hashmapAsZipList() throws Exception {
-    Map<String, String> map = new HashMap<String, String>();
-    map.put("one", "loremipsum");
-    map.put("two", "2");
-    map.put("three", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-    jedis.flushAll();
-    for (Map.Entry<String, String> e : map.entrySet()) {
-      jedis.hset("foo", e.getKey(), e.getValue());
-    }
-    jedis.save();
-    try (RdbParser p = openTestParser()) {
-      skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
-      Assert.assertTrue(ValueType.HASHMAP_AS_ZIPLIST == kvp.getValueType());
-      Map<String,String> parsedMap = new HashMap<String,String>();
-      for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
-        parsedMap.put(str(i.next()), str(i.next()));
+    if (isLaterThan(redisVersion, "2.6.0")) {
+      Map<String, String> map = new HashMap<String, String>();
+      map.put("one", "loremipsum");
+      map.put("two", "2");
+      map.put("three", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+      jedis.flushAll();
+      for (Map.Entry<String, String> e : map.entrySet()) {
+        jedis.hset("foo", e.getKey(), e.getValue());
       }
-      Assert.assertEquals(map, parsedMap);
+      jedis.save();
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        Assert.assertTrue(ValueType.HASHMAP_AS_ZIPLIST == kvp.getValueType());
+        Map<String,String> parsedMap = new HashMap<String,String>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
+          parsedMap.put(str(i.next()), str(i.next()));
+        }
+        Assert.assertEquals(map, parsedMap);
+      }
+    }
+  }
+
+  @Test
+  public void zipMap() throws Exception {
+    if (isEarlierThan(redisVersion, "2.6.0")) {
+      Map<String, String> map = new HashMap<String, String>();
+      map.put("one", "loremipsum");
+      map.put("two", "2");
+      map.put("three", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+      jedis.flushAll();
+      for (Map.Entry<String, String> e : map.entrySet()) {
+        jedis.hset("foo", e.getKey(), e.getValue());
+      }
+      jedis.save();
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        Assert.assertTrue(ValueType.ZIPMAP == kvp.getValueType());
+        Map<String,String> parsedMap = new HashMap<String,String>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
+          parsedMap.put(str(i.next()), str(i.next()));
+        }
+        Assert.assertEquals(map, parsedMap);
+      }
     }
   }
 }
