@@ -2,5 +2,5 @@ language: java
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y wget build-essential git
-  - git submodule update
+  - git submodule update --init
   - make -C redis

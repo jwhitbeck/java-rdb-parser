@@ -44,77 +44,88 @@ import redis.clients.jedis.Jedis;
 @RunWith(Parameterized.class)
 public class RdbParserTest {
 
-  static final int[] SUPPORTED_RDB_VERSIONS = new int[]{6, 7};
+  static final class RedisServerInstance {
+    static int nextPort = 4000;
 
-  static final int maxRdbVersion = SUPPORTED_RDB_VERSIONS[SUPPORTED_RDB_VERSIONS.length - 1];
-  static final String[] redisVersions = new String[maxRdbVersion + 1];
-  static final Process[] redisServerProcs = new Process[maxRdbVersion + 1];
-  static final Jedis[] jedisClients = new Jedis[maxRdbVersion + 1];
+    final int rdbVersion;
+    final String redisVersion;
+    final int port;
+    final File workDir;
+    final File dumpFile;
+    Process proc;
+    Jedis jedis;
 
-  static {
-    redisVersions[6] = "2.8.24";
-    redisVersions[7] = "3.2.11";
+    RedisServerInstance(String redisVersion, int rdbVersion) {
+      this.redisVersion = redisVersion;
+      this.rdbVersion = rdbVersion;
+      port = ++nextPort;
+      workDir = new File("redis", "" + redisVersion);
+      dumpFile = new File(workDir, "dump.rdb");
+    }
+
+    void startRedisServer() throws Exception {
+      dumpFile.delete(); // start from an empty dump
+      proc = new ProcessBuilder()
+          .directory(workDir)
+          .command("src/redis-server", "--port", "" + port)
+          .start();
+    }
+
+    void startJedis() throws Exception {
+      jedis = new Jedis("localhost", port);
+    }
+
+    void stop() throws Exception {
+      jedis.close();
+      proc.destroy();
+      dumpFile.delete();
+    }
+  }
+
+  static final RedisServerInstance[] instances = new RedisServerInstance[]{
+    new RedisServerInstance("2.8.24", 6),
+    new RedisServerInstance("3.2.11", 7)
+  };
+
+  @BeforeClass
+  public static void startClients() throws Exception {
+    for (RedisServerInstance inst : instances) {
+      inst.startRedisServer();
+    }
+    Thread.sleep(2000); // wait for the redis servers to start
+    for (RedisServerInstance inst : instances) {
+      inst.startJedis();
+    }
+  }
+
+  @AfterClass
+  public static void stopClients() throws Exception {
+    for (RedisServerInstance inst : instances) {
+      inst.stop();
+    }
   }
 
   int rdbVersion;
   String redisVersion;
-  Process redisServerProc;
   File dumpFile;
   Jedis jedis;
 
   @Parameters
   public static Collection<Object[]> params() {
-    List<Object[]> params = new ArrayList<Object[]>(SUPPORTED_RDB_VERSIONS.length);
-    for (int rdbVersion : SUPPORTED_RDB_VERSIONS) {
-      params.add(new Object[]{rdbVersion});
+    List<Object[]> params = new ArrayList<Object[]>(instances.length);
+    for (RedisServerInstance inst : instances) {
+      params.add(new Object[]{inst});
     }
     return params;
   }
 
-  public RdbParserTest(int rdbVersion) {
-    this.rdbVersion = rdbVersion;
-    this.redisVersion = redisVersions[rdbVersion];
-    this.dumpFile = getDumpFile(rdbVersion);
-    this.redisServerProc = redisServerProcs[rdbVersion];
-    this.jedis = jedisClients[rdbVersion];
+  public RdbParserTest(RedisServerInstance inst) {
+    this.rdbVersion = inst.rdbVersion;
+    this.redisVersion = inst.redisVersion;
+    this.dumpFile = inst.dumpFile;
+    this.jedis = inst.jedis;
   }
 
-  static int getRedisPort(int rdbVersion) {
-    return 4440 + rdbVersion;
-  }
-
-  static File getCwd(int rdbVersion) {
-    return new File("redis/" + redisVersions[rdbVersion]);
-  }
-
-  static File getDumpFile(int rdbVersion) {
-    return new File(getCwd(rdbVersion), "dump.rdb");
-  }
-
-
-  @BeforeClass
-  public static void startClients() throws Exception {
-    for (int rdbVersion : SUPPORTED_RDB_VERSIONS) {
-      getDumpFile(rdbVersion).delete(); // start from an empty dump
-      redisServerProcs[rdbVersion] = new ProcessBuilder()
-          .directory(getCwd(rdbVersion))
-          .command("src/redis-server", "--port", "" + getRedisPort(rdbVersion))
-          .start();
-    }
-    Thread.sleep(2000); // wait for the redis servers to start
-    for (int rdbVersion : SUPPORTED_RDB_VERSIONS) {
-      jedisClients[rdbVersion] = new Jedis("localhost", getRedisPort(rdbVersion));
-    }
-  }
-
-  @AfterClass
-  public static void stopClients() throws IOException {
-    for (int rdbVersion : SUPPORTED_RDB_VERSIONS) {
-      jedisClients[rdbVersion].close();
-      redisServerProcs[rdbVersion].destroy();
-      getDumpFile(rdbVersion).delete();
-    }
-  }
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
