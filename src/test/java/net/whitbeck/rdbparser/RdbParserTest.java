@@ -285,8 +285,8 @@ public class RdbParserTest {
         t = p.readNext();
         Assert.assertEquals(EntryType.RESIZE_DB, t.getType());
         resizeDb = (ResizeDb)t;
-        Assert.assertEquals(resizeDb.getDbHashTableSize(), 1);
-        Assert.assertEquals(resizeDb.getExpiryHashTableSize(), 0);
+        Assert.assertEquals(1, resizeDb.getDbHashTableSize());
+        Assert.assertEquals(0, resizeDb.getExpiryHashTableSize());
       }
       // foo:bar
       t = p.readNext();
@@ -305,8 +305,8 @@ public class RdbParserTest {
         t = p.readNext();
         Assert.assertEquals(EntryType.RESIZE_DB, t.getType());
         resizeDb = (ResizeDb)t;
-        Assert.assertEquals(resizeDb.getDbHashTableSize(), 1);
-        Assert.assertEquals(resizeDb.getExpiryHashTableSize(), 0);
+        Assert.assertEquals(1, resizeDb.getDbHashTableSize());
+        Assert.assertEquals(0, resizeDb.getExpiryHashTableSize());
       }
       // foo:baz
       t = p.readNext();
@@ -379,29 +379,29 @@ public class RdbParserTest {
     try (RdbParser p = openTestParser()) {
       if (rdbVersion >= 7) {
         // AUX entries
-        Assert.assertEquals(p.readNext().toString(), "AUX (k: redis-ver, v: " + redisVersion + ")");
-        Assert.assertEquals(p.readNext().toString(), "AUX (k: redis-bits, v: 64)");
+        Assert.assertEquals("AUX (k: redis-ver, v: " + redisVersion + ")", p.readNext().toString());
+        Assert.assertEquals("AUX (k: redis-bits, v: 64)", p.readNext().toString());
         Assert.assertTrue(Pattern.matches("AUX \\(k: ctime, v: \\d{10}\\)", p.readNext().toString()));
         Assert.assertTrue(Pattern.matches("AUX \\(k: used-mem, v: \\d+\\)", p.readNext().toString()));
       }
       // DB 0
-      Assert.assertEquals(p.readNext().toString(), "DB_SELECT (0)");
+      Assert.assertEquals("DB_SELECT (0)", p.readNext().toString());
       if (rdbVersion >= 7) {
-        Assert.assertEquals(p.readNext().toString(), "RESIZE_DB (db: 4, expiry: 1)");
+        Assert.assertEquals("RESIZE_DB (db: 4, expiry: 1)", p.readNext().toString());
       }
       for (int i=0; i<4; ++i) {
         KeyValuePair kvp = (KeyValuePair)p.readNext();
         byte[] k = kvp.getKey();
         if (Arrays.equals(k, bytes("simple-key"))) {
-          Assert.assertEquals(kvp.toString(), "KEY_VALUE_PAIR (key: simple-key, 1 value)");
+          Assert.assertEquals("KEY_VALUE_PAIR (key: simple-key, 1 value)", kvp.toString());
         } else if (Arrays.equals(k, bytes("key-with-expiry"))) {
-          Assert.assertEquals(kvp.toString(),
-                              "KEY_VALUE_PAIR (key: key-with-expiry, expiry: "
-                              + expiry * 1000 + ", 1 value)");
-        } else if (Arrays.equals(k, bytes("list-key"))) {
-          Assert.assertEquals(kvp.toString(), "KEY_VALUE_PAIR (key: list-key, 3 values)");
+          Assert.assertEquals("KEY_VALUE_PAIR (key: key-with-expiry, expiry: "
+                              + expiry * 1000 + ", 1 value)",
+                              kvp.toString());
+        } else if (Arrays.equals(bytes("list-key"), k)) {
+          Assert.assertEquals("KEY_VALUE_PAIR (key: list-key, 3 values)", kvp.toString());
         } else if (Arrays.equals(k, new byte[]{0, 1, 2, 3})) {
-          Assert.assertEquals(kvp.toString(), "KEY_VALUE_PAIR (key: \\x00\\x01\\x02\\x03, 1 value)");
+          Assert.assertEquals("KEY_VALUE_PAIR (key: \\x00\\x01\\x02\\x03, 1 value)", kvp.toString());
         }
       }
       Assert.assertTrue(Pattern.matches("EOF \\([\\da-f]{16}\\)", p.readNext().toString()));
