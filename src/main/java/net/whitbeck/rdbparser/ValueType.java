@@ -75,5 +75,11 @@ public enum ValueType {
   /**
    * A linked list of ziplists to achieve good compression on lists of any length
    */
-  QUICKLIST;
+  QUICKLIST,
+
+  /**
+   * Like SORTED_SET but encodes the scores as doubles using the IEEE 754 floating-point "double
+   * format" bit layout on 8 bits instead of a string representation of the score.
+   */
+  SORTED_SET2;
 }

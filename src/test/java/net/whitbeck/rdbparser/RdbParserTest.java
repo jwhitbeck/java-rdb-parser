@@ -15,6 +15,7 @@ package net.whitbeck.rdbparser;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
@@ -89,7 +90,8 @@ public class RdbParserTest {
   static final RedisServerInstance[] instances = new RedisServerInstance[]{
     new RedisServerInstance("2.4.18", 6),
     new RedisServerInstance("2.8.24", 6),
-    new RedisServerInstance("3.2.11", 7)
+    new RedisServerInstance("3.2.11", 7),
+    new RedisServerInstance("4.0.6", 8)
   };
 
   @BeforeClass
@@ -220,11 +222,12 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       Entry t;
+      Aux aux;
       if (rdbVersion >= 7) {
         // AUX redis-ver = 3.2.0
         t = p.readNext();
         Assert.assertTrue(t.getType() == EntryType.AUX);
-        Aux aux = (Aux)t;
+        aux = (Aux)t;
         Assert.assertArrayEquals(bytes("redis-ver"), aux.getKey());
         Assert.assertArrayEquals(bytes(redisVersion), aux.getValue());
         // AUX redis-bits = 64
@@ -244,6 +247,14 @@ public class RdbParserTest {
         aux = (Aux)t;
         Assert.assertArrayEquals(bytes("used-mem"), aux.getKey());
       }
+      if (rdbVersion >= 8) {
+        // AUX aof-preamble = 0
+        t = p.readNext();
+        Assert.assertTrue(t.getType() == EntryType.AUX);
+        aux = (Aux)t;
+        Assert.assertArrayEquals(bytes("aof-preamble"), aux.getKey());
+        Assert.assertArrayEquals(bytes("0"), aux.getValue());
+      }
       // EOF
       t = p.readNext();
       Assert.assertTrue(t.getType() == EntryType.EOF);
@@ -254,7 +265,16 @@ public class RdbParserTest {
 
   void skipAux(RdbParser p) throws IOException {
     // Skip the four AUX entries at the beginning of the file.
-    for (int i=0; i<4; i++) {
+    int numEntries = 0;
+    switch (rdbVersion) {
+      case 7:
+        numEntries = 4;
+        break;
+      case 8:
+        numEntries = 5;
+        break;
+    }
+    for (int i=0; i<numEntries; i++) {
       p.readNext();
     }
   }
@@ -272,9 +292,7 @@ public class RdbParserTest {
       ResizeDb resizeDb;
       DbSelect dbSelect;
       KeyValuePair kvp;
-      if (rdbVersion >= 7 ) {
-        skipAux(p);
-      }
+      skipAux(p);
       // DB_SELECTOR 0
       t = p.readNext();
       Assert.assertEquals(EntryType.DB_SELECT, t.getType());
@@ -322,9 +340,7 @@ public class RdbParserTest {
   }
 
   void skipToFirstKeyValuePair(RdbParser p) throws IOException {
-    if (rdbVersion >= 7)  {
-      skipAux(p); // Skip the AUX entries at top of file
-    }
+    skipAux(p); // Skip the AUX entries at top of file
     p.readNext(); // Skip the DB_SELECTOR entry
     if (rdbVersion >= 7) {
       p.readNext(); // Skip the RESIZE_DB entry
@@ -383,6 +399,10 @@ public class RdbParserTest {
         Assert.assertEquals("AUX (k: redis-bits, v: 64)", p.readNext().toString());
         Assert.assertTrue(Pattern.matches("AUX \\(k: ctime, v: \\d{10}\\)", p.readNext().toString()));
         Assert.assertTrue(Pattern.matches("AUX \\(k: used-mem, v: \\d+\\)", p.readNext().toString()));
+      }
+      if (rdbVersion >= 8) {
+        // more AUX entries
+        Assert.assertEquals("AUX (k: aof-preamble, v: 0)", p.readNext().toString());
       }
       // DB 0
       Assert.assertEquals("DB_SELECT (0)", p.readNext().toString());
@@ -529,27 +549,62 @@ public class RdbParserTest {
 
   @Test
   public void sortedSet() throws Exception {
-    Map<String, Double> valueScoreMap = new HashMap<String, Double>();
-    valueScoreMap.put("foo", 1.45);
-    valueScoreMap.put("bar", Double.POSITIVE_INFINITY);
-    valueScoreMap.put("baz", Double.NEGATIVE_INFINITY);
-    jedis.flushAll();
-    String origValue = jedis.configGet("zset-max-ziplist-entries").get(1);
-    jedis.configSet("zset-max-ziplist-entries", "0");
-    for (Map.Entry<String, Double> e : valueScoreMap.entrySet()) {
-      jedis.zadd("foo", e.getValue(), e.getKey());
-    }
-    jedis.save();
-    jedis.configSet("zset-max-ziplist-entries", origValue);
-    try (RdbParser p = openTestParser()) {
-      skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
-      Assert.assertTrue(ValueType.SORTED_SET == kvp.getValueType());
-      Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
-      for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
-        parsedValueScoreMap.put(str(i.next()), Double.parseDouble(str(i.next())));
+    if (rdbVersion < 8) {
+      Map<String, Double> valueScoreMap = new HashMap<String, Double>();
+      valueScoreMap.put("foo", 1.45);
+      valueScoreMap.put("bar", Double.POSITIVE_INFINITY);
+      valueScoreMap.put("baz", Double.NEGATIVE_INFINITY);
+      jedis.flushAll();
+      String origValue = jedis.configGet("zset-max-ziplist-entries").get(1);
+      jedis.configSet("zset-max-ziplist-entries", "0");
+      for (Map.Entry<String, Double> e : valueScoreMap.entrySet()) {
+        jedis.zadd("foo", e.getValue(), e.getKey());
       }
-      Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
+      jedis.save();
+      jedis.configSet("zset-max-ziplist-entries", origValue);
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        Assert.assertTrue(ValueType.SORTED_SET == kvp.getValueType());
+        Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
+          parsedValueScoreMap.put(str(i.next()), Double.parseDouble(str(i.next())));
+        }
+        Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
+      }
+    }
+  }
+
+  @Test
+  public void sortedSet2() throws Exception {
+    if (rdbVersion >= 8) {
+      Map<String, Double> valueScoreMap = new HashMap<String, Double>();
+      valueScoreMap.put("foo", 1.45);
+      valueScoreMap.put("bar", Double.POSITIVE_INFINITY);
+      valueScoreMap.put("baz", Double.NEGATIVE_INFINITY);
+      jedis.flushAll();
+      String origValue = jedis.configGet("zset-max-ziplist-entries").get(1);
+      jedis.configSet("zset-max-ziplist-entries", "0");
+      for (Map.Entry<String, Double> e : valueScoreMap.entrySet()) {
+        jedis.zadd("foo", e.getValue(), e.getKey());
+      }
+      jedis.save();
+      jedis.configSet("zset-max-ziplist-entries", origValue);
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        Assert.assertTrue(ValueType.SORTED_SET2 == kvp.getValueType());
+        Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
+          String k = str(i.next());
+          byte[] rv = i.next();
+          ByteBuffer buf = ByteBuffer.wrap(rv);
+          buf.order(ByteOrder.LITTLE_ENDIAN);
+          double d = buf.getDouble();
+          parsedValueScoreMap.put(k, d);
+        }
+        Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
+      }
     }
   }
 

@@ -130,7 +130,7 @@ public final class RdbParser implements AutoCloseable {
       throw new IllegalStateException("Not a valid redis RDB file");
     }
     version = readVersion();
-    if (version < 1 || version > 7) {
+    if (version < 1 || version > 8) {
       throw new IllegalStateException("Unknown version");
     }
     isInitialized = true;
@@ -201,21 +201,33 @@ public final class RdbParser implements AutoCloseable {
 
   private long readLength() throws IOException {
     int firstByte = readByte();
-    // the first two bits determine the encoding
+    // The first two bits determine the encoding.
     int flag = (firstByte & 0xc0) >> 6;
-    switch (flag) {
-      case 0: // length is read from the lower 6 bits
-        return firstByte & 0x3f;
-      case 1: // one additional byte is read for a 14 bit encoding
-        return (((long)firstByte & 0x3f) << 8) | ((long)readByte() & 0xff);
-      case 2: // read next four bytes as unsigned big-endian
-        byte[] bs = readBytes(4);
-        return ((long)bs[0] & 0xff) << 24
-             | ((long)bs[1] & 0xff) << 16
-             | ((long)bs[2] & 0xff) <<  8
-             | ((long)bs[3] & 0xff) <<  0;
-      default:
-        throw new IllegalStateException("Expected a length, but got a special string encoding.");
+    if (flag == 0) { // 00|XXXXXX: len is the last 6 bits of this byte.
+      return firstByte & 0x3f;
+    } else if (flag == 1) { // 01|XXXXXX: len is encoded on the next 14 bits.
+      return (((long)firstByte & 0x3f) << 8) | ((long)readByte() & 0xff);
+    } else if (firstByte == 0x80) {
+      // 10|000000: len is a 32-bit integer encoded on the next 4 bytes.
+      byte[] bs = readBytes(4);
+      return ((long)bs[0] & 0xff) << 24
+          | ((long)bs[1] & 0xff) << 16
+          | ((long)bs[2] & 0xff) <<  8
+          | ((long)bs[3] & 0xff) <<  0;
+    } else if (firstByte == 0x81) {
+      // 10|000001: len is a 64-bit integer encoded on the next 8 bytes.
+      byte[] bs = readBytes(8);
+      return ((long)bs[0] & 0xff) << 56
+          | ((long)bs[1] & 0xff) << 48
+          | ((long)bs[2] & 0xff) << 40
+          | ((long)bs[3] & 0xff) << 32
+          | ((long)bs[4] & 0xff) << 24
+          | ((long)bs[5] & 0xff) << 16
+          | ((long)bs[6] & 0xff) <<  8
+          | ((long)bs[7] & 0xff) <<  0;
+    } else {
+      // 11|XXXXXX: special encoding.
+      throw new IllegalStateException("Expected a length, but got a special string encoding.");
     }
   }
 
@@ -327,6 +339,11 @@ public final class RdbParser implements AutoCloseable {
         return readSortedSet(ts, key);
       case 4:
         return readHash(ts, key);
+      case 5:
+        return readSortedSet2(ts, key);
+      case 6: // Modules v1
+      case 7: // Modules v2
+        throw new UnsupportedOperationException("Parsing Redis modules is not supported");
       case 9:
         return readZipMap(ts, key);
       case 10:
@@ -389,6 +406,21 @@ public final class RdbParser implements AutoCloseable {
       valueScoresPairs.add(readDoubleString());
     }
     return new KeyValuePair(ValueType.SORTED_SET, ts, key, valueScoresPairs);
+  }
+
+  private KeyValuePair readSortedSet2(byte[] ts, byte[] key) throws IOException {
+    long len = readLength();
+    if (len > (Integer.MAX_VALUE / 2)) {
+      throw new IllegalArgumentException("SortedSets with more than " + (Integer.MAX_VALUE / 2)
+                                         + " elements are not supported.");
+    }
+    int size = (int)len;
+    List<byte[]> valueScoresPairs = new ArrayList<byte[]>(2 * size);
+    for (int i = 0; i < size; ++i) {
+      valueScoresPairs.add(readStringEncoded());
+      valueScoresPairs.add(readBytes(8));
+    }
+    return new KeyValuePair(ValueType.SORTED_SET2, ts, key, valueScoresPairs);
   }
 
   private KeyValuePair readHash(byte[] ts, byte[] key) throws IOException {
