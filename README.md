@@ -9,11 +9,10 @@ A simple Java library for parsing [Redis](http://redis.io) RDB files.
 This library does the minimal amount of work to read entries (e.g. a new DB selector, or a key/value pair with
 an expiry) from an RDB file. In particular, it does not make any assumptions about string encodings or the
 types of objects to coerce Redis data into, thereby limiting itself to returning byte arrays or lists of byte
-arrays for keys and values. Furthermore, it performs lazy decoding of the packed encodings (ZipList, Hashmap
-as ZipList, Sorted Set as ZipList, and Intset) such that those are only decoded when needed.
+arrays for keys and values. Furthermore, it performs lazy decoding of the packed encodings (ZipMap, ZipList,
+Hashmap as ZipList, Sorted Set as ZipList, and Intset) such that those are only decoded when needed.
 
-This library supports the RDB files created by redis 2.8 through 3.2. The ZipMap encoding, deprecated as of
-redis 2.6, is not currently supported. If you need it, please open a Github issue.
+RDB files created by all versions of Redis through 4.0.x are supported.
 
 To use this library, including the following dependency in your `pom.xml`.
 
@@ -138,9 +137,16 @@ End of file. Checksum: 157e40ad49ef13f6
 ```
 
 Note that sorted sets and hashes are parsed as a flat list of value/score pairs and key/value pairs,
-respectively. Simple redis values are parsed as a singleton. As expected, redis lists and sets are parsed as
+respectively. Simple Redis values are parsed as a singleton. As expected, Redis lists and sets are parsed as
 lists of values.
 
 ## References
 
+The last RDB format version is 8. The source of truth is the
+[rdb.h](https://github.com/antirez/redis/blob/unstable/src/rdb.h) file in the [Redis
+repo](https://github.com/antirez/redis). The following resources provide a good overview of the RDB format up
+to version 7 (as of December 2017).
+
 - [RDB file format](http://rdb.fnordig.de/file_format.html)
+- [RDB file format (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format)
+- [RDB version history (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile)

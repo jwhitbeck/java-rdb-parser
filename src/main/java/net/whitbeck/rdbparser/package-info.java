@@ -17,19 +17,32 @@
  * key/value pair with an expiry) from an RDB file. In particular, it does not make any assumptions
  * about string encodings or the types of objects to coerce Redis data into, thereby limiting itself
  * to returning byte arrays or lists of byte arrays for keys and values. Furthermore, it performs
- * lazy decoding of the packed encodings (ZipList, Hashmap as ZipList, Sorted Set as ZipList, and
- * Intset) such that those are only decoded when needed.
+ * lazy decoding of the packed encodings (ZipMap, ZipList, Hashmap as ZipList, Sorted Set as
+ * ZipList, and Intset) such that those are only decoded when needed.
  *
- * <p>The ZipMap encoding, deprecated as of Redis 2.6, is not currently supported. If you need it,
- * please open a Github issue.
+ * <p>RDB files created by all versions of Redis through 4.0.x are supported.
  *
  * <p>Implemenation is not thread safe.
  *
- * <p>References:
+ * <p>The last RDB format version is 8. The source of truth is the <a
+ * href="https://github.com/antirez/redis/blob/unstable/src/rdb.h">rdb.h</a> file in the <a
+ * href="https://github.com/antirez/redis">Redis repo</a>. The following resources provide a good
+ * overview of the RDB format up to version 7 (as of December 2017).
+ *
  * <ul>
  *   <li>
  *     <a href="http://rdb.fnordig.de/file_format.html">
  *      RDB file format
+ *     </a>
+ *   </li>
+ *   <li>
+ *     <a href="https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format">
+ *      RDB file format (redis-rdb-tools)
+ *     </a>
+ *   </li>
+ *   <li>
+ *     <a href="https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile">
+ *      RDB version history (redis-rdb-tools)
  *     </a>
  *   </li>
  * </ul>
