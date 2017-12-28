@@ -20,7 +20,7 @@ To use this library, including the following dependency in your `pom.xml`.
 <dependency>
     <groupId>net.whitbeck</groupId>
     <artifactId>rdb-parser</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
