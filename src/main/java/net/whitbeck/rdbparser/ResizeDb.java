@@ -13,12 +13,16 @@
 package net.whitbeck.rdbparser;
 
 /**
- * Resize DB entries contain two values to speed up RDB loading by avoiding additional resizes and
- * rehashing:
- *   - database hash table size
- *   - expiry hash table size
+ * <p>Resize DB entries contain information to speed up RDB loading by avoiding additional resizes
+ * and rehashing.
  *
- * Introduced in RDB version 7.
+ * <p>Specifically, it contains the following:
+ * <ul>
+ *   <li>database hash table size;</li>
+ *   <li>expiry hash table size.</li>
+ * </ul>
+ *
+ * <p>Introduced in RDB version 7.
  *
  * @author John Whitbeck
  */

@@ -13,8 +13,8 @@
 package net.whitbeck.rdbparser;
 
 /**
- * End-of-file entry. This is always the last entry in the file and, as of RDB version 6, contains
- * an 8 byte checksum of the file.
+ * <p>End-of-file entry. This is always the last entry in the file and, as of RDB version 6,
+ * contains an 8 byte checksum of the file.
  *
  * @author John Whitbeck
  */

@@ -13,7 +13,7 @@
 package net.whitbeck.rdbparser;
 
 /**
- * This enum holds the three types of entries that the {@link RdbParser} can read from a RDB file.
+ * This enum holds the diffrent types of entries that the {@link RdbParser} can read from a RDB file.
  *
  * @author John Whitbeck
  */

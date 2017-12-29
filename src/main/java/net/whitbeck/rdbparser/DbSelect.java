@@ -13,7 +13,7 @@
 package net.whitbeck.rdbparser;
 
 /**
- * DB selection entries mark the beginning of a new database in the RDB dump file. All subsequent
+ * <p>DB selection entries mark the beginning of a new database in the RDB dump file. All subsequent
  * {@link KeyValuePair}s until the next {@link DbSelect} or {@link Eof} entry belong to this
  * database.
  *

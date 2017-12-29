@@ -7,12 +7,21 @@
 A simple Java library for parsing [Redis](http://redis.io) RDB files.
 
 This library does the minimal amount of work to read entries (e.g. a new DB selector, or a key/value pair with
-an expiry) from an RDB file. In particular, it does not make any assumptions about string encodings or the
-types of objects to coerce Redis data into, thereby limiting itself to returning byte arrays or lists of byte
-arrays for keys and values. Furthermore, it performs lazy decoding of the packed encodings (ZipMap, ZipList,
-Hashmap as ZipList, Sorted Set as ZipList, and Intset) such that those are only decoded when needed.
+an expiry) from an RDB file, mostly limiting itself to returning byte arrays or lists of byte arrays for keys
+and values. The caller is responsible for application-level decisions like how to interpret the contents of
+the returned byte arrays or what types of objects to instantiate from them.
 
-RDB files created by all versions of Redis through 4.0.x are supported.
+For example, sorted sets and hashes are parsed as a flat list of value/score pairs and key/value pairs,
+respectively. Simple Redis values are parsed as a singleton. As expected, Redis lists and sets are parsed as
+lists of values.
+
+Furthermore, this library performs lazy decoding of the packed encodings (ZipMap, ZipList, Hashmap as ZipList,
+Sorted Set as ZipList, and Intset) such that those are only decoded when needed. This allows the caller to
+efficiently skip over these entries or defer their decoding to a worker thread.
+
+RDB files created by all versions of Redis through 4.0.x are supported (i.e., RDB versions 1 through 8). Redis
+modules, introduced in RDB version 8, are not currently supported. If you need them, please open an issue or a
+pull request.
 
 To use this library, including the following dependency in your `pom.xml`.
 
@@ -135,10 +144,6 @@ Values: bar
 End of file. Checksum: 157e40ad49ef13f6
 ------------
 ```
-
-Note that sorted sets and hashes are parsed as a flat list of value/score pairs and key/value pairs,
-respectively. Simple Redis values are parsed as a singleton. As expected, Redis lists and sets are parsed as
-lists of values.
 
 ## References
 

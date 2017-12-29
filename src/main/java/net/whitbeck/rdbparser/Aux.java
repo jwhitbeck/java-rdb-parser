@@ -13,9 +13,9 @@
 package net.whitbeck.rdbparser;
 
 /**
- * Auxiliary entries contain a key value pair to holds metadata about the RDB file.
+ * <p>Auxiliary entries contain a key value pair to holds metadata about the RDB file.
  *
- * Introduced in RDB version 7.
+ * <p>Introduced in RDB version 7.
  *
  * @author John Whitbeck
  */
