@@ -15,7 +15,6 @@ package net.whitbeck.rdbparser;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
@@ -568,7 +567,7 @@ public class RdbParserTest {
         Assert.assertTrue(ValueType.SORTED_SET == kvp.getValueType());
         Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
         for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
-          parsedValueScoreMap.put(str(i.next()), Double.parseDouble(str(i.next())));
+          parsedValueScoreMap.put(str(i.next()), RdbParser.parseSortedSetScore(i.next()));
         }
         Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
       }
@@ -596,12 +595,7 @@ public class RdbParserTest {
         Assert.assertTrue(ValueType.SORTED_SET2 == kvp.getValueType());
         Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
         for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
-          String k = str(i.next());
-          byte[] rv = i.next();
-          ByteBuffer buf = ByteBuffer.wrap(rv);
-          buf.order(ByteOrder.LITTLE_ENDIAN);
-          double d = buf.getDouble();
-          parsedValueScoreMap.put(k, d);
+          parsedValueScoreMap.put(str(i.next()), RdbParser.parseSortedSet2Score(i.next()));
         }
         Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
       }
@@ -751,7 +745,7 @@ public class RdbParserTest {
       Assert.assertTrue(ValueType.SORTED_SET_AS_ZIPLIST == kvp.getValueType());
       Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
       for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ){
-        parsedValueScoreMap.put(str(i.next()), Double.parseDouble(str(i.next())));
+        parsedValueScoreMap.put(str(i.next()), RdbParser.parseSortedSetScore(i.next()));
       }
       Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
     }

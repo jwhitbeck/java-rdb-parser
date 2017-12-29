@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -482,6 +483,21 @@ public final class RdbParser implements AutoCloseable {
   @Override
   public void close() throws IOException {
     ch.close();
+  }
+
+  /**
+   * Parses the raw score of an element in a {@link ValueType#SORTED_SET} or
+   * {@link ValueType#SORTED_SET_AS_ZIPLIST}.
+   */
+  public static double parseSortedSetScore(byte[] bytes) {
+    return Double.parseDouble(new String(bytes, ASCII));
+  }
+
+  /**
+   * Parses the raw score of an element in a {@link ValueType#SORTED_SET2}.
+   */
+  public static double parseSortedSet2Score(byte[] bytes) {
+    return ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).getDouble();
   }
 
 }
