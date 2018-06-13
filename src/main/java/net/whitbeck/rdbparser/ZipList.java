@@ -36,10 +36,10 @@ final class ZipList implements LazyList {
     List<byte[]> list = new ArrayList<byte[]>(num);
     int idx = 0;
     while (idx < num) {
-      // skip length of previous entry. If len is <= 253, it represents the length of the previous
-      // entry, otherwise, the next four bytes are used to store the length
+      // skip length of previous entry. If len is <= 253 (0xfd), it represents the length of the
+      // previous entry, otherwise, the next four bytes are used to store the length
       int prevLen = (int)envelope[pos++] & 0xff;
-      if (prevLen >= 0xfe) {
+      if (prevLen > 0xfd) {
         pos += 4;
       }
       int special = (int)envelope[pos++] & 0xff;
