@@ -63,10 +63,10 @@ final class ZipList implements LazyList {
           break;
         case 2: /* String value with length greater than or equal to 16384 bytes. Length is read
                    from 4 following bytes. */
-          len = ((int)envelope[pos++] & 0xff) <<  24
-              | ((int)envelope[pos++] & 0xff) <<  16
-              | ((int)envelope[pos++] & 0xff) << 8
-              | ((int)envelope[pos++] & 0xff) << 0;
+          len = ((int)envelope[pos++] & 0xff) << 24
+              | ((int)envelope[pos++] & 0xff) << 16
+              | ((int)envelope[pos++] & 0xff) <<  8
+              | ((int)envelope[pos++] & 0xff) <<  0;
           buf = new byte[len];
           System.arraycopy(envelope, pos, buf, 0, len);
           pos += len;
