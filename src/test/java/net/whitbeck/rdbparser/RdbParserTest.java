@@ -754,10 +754,22 @@ public class RdbParserTest {
   @Test
   public void hashmapAsZipList() throws Exception {
     if (isLaterThan(redisVersion, "2.6.0")) {
+      StringBuffer sb = new StringBuffer(16384);
+      for (int i=0; i<64; ++i) {
+        sb.append("x");
+      }
+      String mediumString = sb.toString();
+      for (int i=0; i<256; ++i) {
+        sb.append(mediumString);
+      }
+      String longString = sb.toString();
       Map<String, String> map = new HashMap<String, String>();
       map.put("one", "loremipsum");
       map.put("two", "2");
       map.put("three", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+      map.put("four", mediumString);
+      map.put("five", longString);
+      jedis.configSet("hash-max-ziplist-value", Integer.toString(longString.length()));
       jedis.flushAll();
       for (Map.Entry<String, String> e : map.entrySet()) {
         jedis.hset("foo", e.getKey(), e.getValue());
