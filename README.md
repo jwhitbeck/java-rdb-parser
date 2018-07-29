@@ -8,7 +8,7 @@ A simple Java library for parsing [Redis](http://redis.io) RDB files.
 
 This library does the minimal amount of work to read entries (e.g. a new DB selector, or a key/value pair with
 an expiry) from an RDB file, mostly limiting itself to returning byte arrays or lists of byte arrays for keys
-and values. The caller is responsible for application-level decisions like how to interpret the contents of
+and values. The caller is responsible for application-level decisions such as how to interpret the contents of
 the returned byte arrays or what types of objects to instantiate from them.
 
 For example, sorted sets and hashes are parsed as a flat list of value/score pairs and key/value pairs,
@@ -147,7 +147,7 @@ End of file. Checksum: 157e40ad49ef13f6
 
 ## References
 
-The last RDB format version is 8. The source of truth is the
+The most recent RDB format version is 8. The source of truth is the
 [rdb.h](https://github.com/antirez/redis/blob/unstable/src/rdb.h) file in the [Redis
 repo](https://github.com/antirez/redis). The following resources provide a good overview of the RDB format up
 to version 7 (as of December 2017).
