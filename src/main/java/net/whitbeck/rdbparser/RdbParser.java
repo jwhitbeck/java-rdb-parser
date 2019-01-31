@@ -97,6 +97,13 @@ public final class RdbParser implements AutoCloseable {
     return buf.get() & 0xff;
   }
 
+  private int readSignedByte() throws IOException {
+    if (!buf.hasRemaining()) {
+      fillBuffer();
+    }
+    return buf.get();
+  }
+
   private byte[] readBytes(int numBytes) throws IOException {
     int rem = numBytes;
     int pos = 0;
@@ -263,18 +270,18 @@ public final class RdbParser implements AutoCloseable {
   }
 
   private byte[] readInteger8Bits() throws IOException {
-    return String.valueOf(readByte()).getBytes(ASCII);
+    return String.valueOf(readSignedByte()).getBytes(ASCII);
   }
 
   private byte[] readInteger16Bits() throws IOException {
     long val = ((long)readByte() & 0xff) << 0
-             | ((long)readByte() & 0xff) << 8;
+             |  (long)readSignedByte()   << 8; // Don't apply 0xff mask to preserve sign.
     return String.valueOf(val).getBytes(ASCII);
   }
 
   private byte[] readInteger32Bits() throws IOException {
     byte[] bs = readBytes(4);
-    long val = ((long)bs[3] & 0xff) << 24
+    long val =  (long)bs[3]         << 24 // Don't apply 0xff mask to preserve sign.
              | ((long)bs[2] & 0xff) << 16
              | ((long)bs[1] & 0xff) <<  8
              | ((long)bs[0] & 0xff) <<  0;

@@ -457,6 +457,20 @@ public class RdbParserTest {
   }
 
   @Test
+  public void integerOneByteEncodingSigned() throws Exception {
+    jedis.flushAll();
+    jedis.set("foo", "-12");
+    Assert.assertEquals("int", jedis.objectEncoding("foo"));
+    jedis.save();
+    try (RdbParser p = openTestParser()) {
+      skipToFirstKeyValuePair(p);
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      Assert.assertEquals("foo", str(kvp.getKey()));
+      Assert.assertEquals("-12", str(kvp.getValues().get(0)));
+    }
+  }
+
+  @Test
   public void integerTwoBytesEncoding() throws Exception {
     jedis.flushAll();
     jedis.set("foo", "1234");
@@ -471,6 +485,20 @@ public class RdbParserTest {
   }
 
   @Test
+  public void integerTwoBytesEncodingSigned() throws Exception {
+    jedis.flushAll();
+    jedis.set("foo", "-1234");
+    Assert.assertEquals("int", jedis.objectEncoding("foo"));
+    jedis.save();
+    try (RdbParser p = openTestParser()) {
+      skipToFirstKeyValuePair(p);
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      Assert.assertEquals("foo", str(kvp.getKey()));
+      Assert.assertEquals("-1234", str(kvp.getValues().get(0)));
+    }
+  }
+
+  @Test
   public void integerFourByteEncoding() throws Exception {
     jedis.flushAll();
     jedis.set("foo", "123456789");
@@ -481,6 +509,20 @@ public class RdbParserTest {
       KeyValuePair kvp = (KeyValuePair)p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("123456789", str(kvp.getValues().get(0)));
+    }
+  }
+
+  @Test
+  public void integerFourByteEncodingSigned() throws Exception {
+    jedis.flushAll();
+    jedis.set("foo", "-123456789");
+    Assert.assertEquals("int", jedis.objectEncoding("foo"));
+    jedis.save();
+    try (RdbParser p = openTestParser()) {
+      skipToFirstKeyValuePair(p);
+      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      Assert.assertEquals("foo", str(kvp.getKey()));
+      Assert.assertEquals("-123456789", str(kvp.getValues().get(0)));
     }
   }
 
