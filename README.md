@@ -20,8 +20,8 @@ Sorted Set as ZipList, and Intset) such that those are only decoded when needed.
 efficiently skip over these entries or defer their decoding to a worker thread.
 
 RDB files created by all versions of Redis through 4.0.x are supported (i.e., RDB versions 1 through 8). Redis
-modules, introduced in RDB version 8, are not currently supported. If you need them, please open an issue or a
-pull request.
+modules, introduced in RDB version 8, are not currently supported. Redis 5.x (RDB versions 9+) isn't currently
+supported. If you need them, please open an issue or a pull request.
 
 To use this library, including the following dependency in your `pom.xml`.
 
@@ -147,11 +147,13 @@ End of file. Checksum: 157e40ad49ef13f6
 
 ## References
 
-The most recent RDB format version is 8. The source of truth is the
-[rdb.h](https://github.com/antirez/redis/blob/unstable/src/rdb.h) file in the [Redis
-repo](https://github.com/antirez/redis). The following resources provide a good overview of the RDB format up
-to version 7 (as of December 2017).
+As of December 2017, the most recent RDB format version is 8. The source of truth is the
+[rdb.h][] file in the [Redis repo][]. The following resources provide a good overview of the RDB format up
+to version 7.
 
 - [RDB file format](http://rdb.fnordig.de/file_format.html)
 - [RDB file format (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format)
 - [RDB version history (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile)
+
+[rdb.h]: https://github.com/antirez/redis/blob/unstable/src/rdb.h
+[Redis repo]: https://github.com/antirez/redis
