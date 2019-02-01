@@ -48,7 +48,7 @@
   </dependencies>
   <build>
     <plugins>
-      <!-- Set minium java version -->
+      <!-- Set minimum java version -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
