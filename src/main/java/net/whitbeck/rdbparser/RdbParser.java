@@ -52,6 +52,7 @@ public final class RdbParser implements AutoCloseable {
   private int version;
   private boolean isInitialized = false;
   private boolean hasNext = false;
+  private long bytesBuffered = 0;
 
   public RdbParser(ReadableByteChannel ch) {
     this.ch = ch;
@@ -84,9 +85,11 @@ public final class RdbParser implements AutoCloseable {
 
   private void fillBuffer() throws IOException {
     buf.clear();
-    if (ch.read(buf) == -1) {
+    long n = ch.read(buf);
+    if (n == -1) {
       throw new IOException("Attempting to read past channel end-of-stream.");
     }
+    bytesBuffered += n;
     buf.flip();
   }
 
@@ -145,6 +148,18 @@ public final class RdbParser implements AutoCloseable {
     hasNext = true;
   }
 
+  /**
+   * <p>Returns the number of bytes parsed from the underlying file or stream by successive calls of
+   * the {@link readNext} method.
+   *
+   * <p>As RdbParser uses a buffer internally, the returned value will be slightly smaller than the
+   * total number of bytes buffered from the underlying file or stream.
+   *
+   * @return the number of bytes parsed so far.
+   */
+  public long bytesParsed() {
+    return bytesBuffered - buf.remaining();
+  }
 
   /**
    * Returns the next Entry from the underlying file or stream.
