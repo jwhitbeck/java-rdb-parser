@@ -263,7 +263,7 @@ public class RdbParserTest {
   }
 
   void skipAux(RdbParser p) throws IOException {
-    // Skip the four AUX entries at the beginning of the file.
+    // Skip the AUX entries at the beginning of the file.
     int numEntries = 0;
     switch (rdbVersion) {
       case 7:
