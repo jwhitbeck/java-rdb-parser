@@ -90,7 +90,8 @@ public class RdbParserTest {
     new RedisServerInstance("2.4.18", 6),
     new RedisServerInstance("2.8.24", 6),
     new RedisServerInstance("3.2.11", 7),
-    new RedisServerInstance("4.0.6", 8)
+    new RedisServerInstance("4.0.6", 8),
+    new RedisServerInstance("5.0.6", 9)
   };
 
   @BeforeClass
@@ -270,6 +271,7 @@ public class RdbParserTest {
         numEntries = 4;
         break;
       case 8:
+      case 9:
         numEntries = 5;
         break;
     }

@@ -42,6 +42,9 @@ public final class RdbParser implements AutoCloseable {
   private static final int KEY_VALUE_MS = 0xfc;
   private static final int RESIZE_DB = 0xfb;
   private static final int AUX = 0xfa;
+  private static final int FREQ = 0xf9;
+  private static final int IDLE = 0xf8;
+  private static final int MODULE_AUX = 0xf7;
 
   private static final int BUFFER_SIZE = 8 * 1024;
 
@@ -141,7 +144,7 @@ public final class RdbParser implements AutoCloseable {
       throw new IllegalStateException("Not a valid redis RDB file");
     }
     version = readVersion();
-    if (version < 1 || version > 8) {
+    if (version < 1 || version > 9) {
       throw new IllegalStateException("Unknown version");
     }
     isInitialized = true;
@@ -191,6 +194,12 @@ public final class RdbParser implements AutoCloseable {
         return readEntrySeconds();
       case KEY_VALUE_MS:
         return readEntryMillis();
+      case FREQ:
+        return readFreq();
+      case IDLE:
+        return readIdle();
+      case MODULE_AUX:
+        throw new UnsupportedOperationException("Redis modules are not supported");
       default:
         return readEntry(null, valueType);
     }
@@ -220,6 +229,14 @@ public final class RdbParser implements AutoCloseable {
 
   private Aux readAux() throws IOException {
     return new Aux(readStringEncoded(), readStringEncoded());
+  }
+
+  private Freq readFreq() throws IOException {
+    return new Freq(readByte());
+  }
+
+  private Idle readIdle() throws IOException {
+    return new Idle(readLength());
   }
 
   private long readLength() throws IOException {
@@ -366,7 +383,7 @@ public final class RdbParser implements AutoCloseable {
         return readSortedSet2(ts, key);
       case 6: // Modules v1
       case 7: // Modules v2
-        throw new UnsupportedOperationException("Parsing Redis modules is not supported");
+        throw new UnsupportedOperationException("Redis modules are not supported");
       case 9:
         return readZipMap(ts, key);
       case 10:
@@ -379,6 +396,8 @@ public final class RdbParser implements AutoCloseable {
         return readHashmapAsZipList(ts, key);
       case 14:
         return readQuickList(ts, key);
+      case 15: // Steam ListPacks
+        throw new UnsupportedOperationException("Redis streams are not supported");
       default:
         throw new UnsupportedOperationException("Unknown value type: " + valueType);
     }
