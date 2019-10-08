@@ -6,22 +6,30 @@
 
 A simple Java library for parsing [Redis](http://redis.io) RDB files.
 
-This library does the minimal amount of work to read entries (e.g. a new DB selector, or a key/value pair with
-an expiry) from an RDB file, mostly limiting itself to returning byte arrays or lists of byte arrays for keys
-and values. The caller is responsible for application-level decisions such as how to interpret the contents of
-the returned byte arrays or what types of objects to instantiate from them.
+This library does the minimal amount of work to read entries (e.g. a new DB
+selector, or a key/value pair with an expiry) from an RDB file, mostly limiting
+itself to returning byte arrays or lists of byte arrays for keys and values. The
+caller is responsible for application-level decisions such as how to interpret
+the contents of the returned byte arrays or what types of objects to instantiate
+from them.
 
-For example, sorted sets and hashes are parsed as a flat list of value/score pairs and key/value pairs,
-respectively. Simple Redis values are parsed as a singleton. As expected, Redis lists and sets are parsed as
-lists of values.
+For example, sorted sets and hashes are parsed as a flat list of value/score
+pairs and key/value pairs, respectively. Simple Redis values are parsed as a
+singleton. As expected, Redis lists and sets are parsed as lists of values.
 
-Furthermore, this library performs lazy decoding of the packed encodings (ZipMap, ZipList, Hashmap as ZipList,
-Sorted Set as ZipList, and Intset) such that those are only decoded when needed. This allows the caller to
-efficiently skip over these entries or defer their decoding to a worker thread.
+Furthermore, this library performs lazy decoding of the packed encodings
+(ZipMap, ZipList, Hashmap as ZipList, Sorted Set as ZipList, Intset, and
+QuickList) such that those are only decoded when needed. This allows the caller
+to efficiently skip over these entries or defer their decoding to a worker
+thread.
 
-RDB files created by all versions of Redis through 4.0.x are supported (i.e., RDB versions 1 through 8). Redis
-modules, introduced in RDB version 8, are not currently supported. Redis 5.x (RDB versions 9+) isn't currently
-supported. If you need them, please open an issue or a pull request.
+RDB files created by all versions of Redis through 5.0.x are supported (i.e.,
+RDB versions 1 through 9). Some features, however, are not supported:
+
+- [Modules](https://redis.io/modules), introduced in RDB version 8
+- [Streams](https://redis.io/topics/streams-intro), introduced in RDB version 9.
+
+If you need these, please open an issue or a pull request.
 
 To use this library, including the following dependency in your `pom.xml`.
 
@@ -40,7 +48,8 @@ Javadocs are available at
 
 Let's begin by creating a new Redis RDB dump file.
 
-Start a server in the background, connect a client to it, a flush all existing data.
+Start a server in the background, connect a client to it, and flush all existing
+data.
 
 ```
 $ redis-server &
@@ -48,7 +57,8 @@ $ redis-cli
 127.0.0.1:6379> flushall
 ```
 
-Now let's create some data structures. Let's start with a simple key/value pair with an expiry.
+Now let's create some data structures. Let's start with a simple key/value pair
+with an expiry.
 
 ```
 127.0.0.1:6379> set foo bar
@@ -63,13 +73,15 @@ Then let's create a small hash and a sorted set.
 127.0.0.1:6379> zadd myset 1 one 2 two 2.5 two-point-five
 ```
 
-Finally, let's save the dump to disk. This will create a `dump.rdb` file in the current directory.
+Finally, let's save the dump to disk. This will create a `dump.rdb` file in the
+current directory.
 
 ```
 127.0.0.1:6379> save
 127.0.0.1:6379> exit
 $ killall redis-server
 ```
+
 Now let's see how to parse the `dump.rdb` file from Java.
 
 ```java
@@ -147,9 +159,9 @@ End of file. Checksum: 157e40ad49ef13f6
 
 ## References
 
-As of December 2017, the most recent RDB format version is 8. The source of truth is the
-[rdb.h][] file in the [Redis repo][]. The following resources provide a good overview of the RDB format up
-to version 7.
+As of October 2019, the most recent RDB format version is 9. The source of truth
+is the [rdb.h][] file in the [Redis repo][]. The following resources provide a
+good overview of the RDB format up to version 7.
 
 - [RDB file format](http://rdb.fnordig.de/file_format.html)
 - [RDB file format (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format)
