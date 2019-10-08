@@ -59,6 +59,7 @@
         </configuration>
       </plugin>
       <!-- Sonatype deploy plugin -->
+      <!-- Run with mvn deploy -P release -->
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
