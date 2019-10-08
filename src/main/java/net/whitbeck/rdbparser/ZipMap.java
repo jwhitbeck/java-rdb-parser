@@ -12,7 +12,6 @@
 
 package net.whitbeck.rdbparser;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +32,7 @@ final class ZipMap implements LazyList {
     // The first byte holds the size of the zip map. If it is greater than or equal to 254,
     // value is not used and we will have to iterate the entire zip map to find the length.
     int zmlen = (int)envelope[pos++] & 0xff;
-    List<byte[]> list = (zmlen < 254)? new ArrayList<byte[]>(2*zmlen) : new ArrayList<byte[]>();
+    List<byte[]> list = zmlen < 254 ? new ArrayList<byte[]>(2*zmlen) : new ArrayList<byte[]>();
     while (true) {
       int b = (int)envelope[pos++] & 0xff;
       if (b == 255) { // reached end of zipmap
