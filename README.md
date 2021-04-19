@@ -23,7 +23,7 @@ QuickList) such that those are only decoded when needed. This allows the caller
 to efficiently skip over these entries or defer their decoding to a worker
 thread.
 
-RDB files created by all versions of Redis through 5.0.x are supported (i.e.,
+RDB files created by all versions of Redis through 6.2.x are supported (i.e.,
 RDB versions 1 through 9). Some features, however, are not supported:
 
 - [Modules](https://redis.io/modules), introduced in RDB version 8
@@ -159,11 +159,11 @@ End of file. Checksum: 157e40ad49ef13f6
 
 ## References
 
-As of October 2019, the most recent RDB format version is 9. The source of truth
+As of April 2021, the most recent RDB format version is 9. The source of truth
 is the [rdb.h][] file in the [Redis repo][]. The following resources provide a
-good overview of the RDB format up to version 7.
+good overview of the RDB format.
 
-- [RDB file format](http://rdb.fnordig.de/file_format.html)
+- [RDB file format](http://rdb.fnordig.de/file_format.html) (up to version 7).
 - [RDB file format (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format)
 - [RDB version history (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile)
 
