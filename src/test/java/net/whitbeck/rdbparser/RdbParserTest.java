@@ -91,7 +91,8 @@ public class RdbParserTest {
     new RedisServerInstance("2.8.24", 6),
     new RedisServerInstance("3.2.11", 7),
     new RedisServerInstance("4.0.6", 8),
-    new RedisServerInstance("5.0.6", 9)
+    new RedisServerInstance("5.0.6", 9),
+    new RedisServerInstance("6.2.1", 9)
   };
 
   @BeforeClass
