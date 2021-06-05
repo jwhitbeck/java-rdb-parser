@@ -37,10 +37,10 @@ public final class RdbParser implements AutoCloseable {
   private static final Charset ASCII = Charset.forName("ASCII");
 
   private static final int EOF = 0xff;
-  private static final int DB_SELECT = 0xfe;
-  private static final int KEY_VALUE_SECS = 0xfd;
-  private static final int KEY_VALUE_MS = 0xfc;
-  private static final int RESIZE_DB = 0xfb;
+  private static final int SELECTDB = 0xfe;
+  private static final int EXPIRETIME = 0xfd;
+  private static final int EXPIRETIME_MS = 0xfc;
+  private static final int RESIZEDB = 0xfb;
   private static final int AUX = 0xfa;
   private static final int FREQ = 0xf9;
   private static final int IDLE = 0xf8;
@@ -184,15 +184,15 @@ public final class RdbParser implements AutoCloseable {
     switch (valueType) {
       case EOF:
         return readEof();
-      case DB_SELECT:
+      case SELECTDB:
         return readDbSelect();
-      case RESIZE_DB:
+      case RESIZEDB:
         return readResizeDb();
       case AUX:
         return readAux();
-      case KEY_VALUE_SECS:
+      case EXPIRETIME:
         return readEntrySeconds();
-      case KEY_VALUE_MS:
+      case EXPIRETIME_MS:
         return readEntryMillis();
       case FREQ:
         return readFreq();

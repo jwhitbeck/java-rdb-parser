@@ -282,7 +282,7 @@ public class RdbParserTest {
   }
 
   @Test
-  public void dbSelect() throws Exception {
+  public void SelectDb() throws Exception {
     jedis.flushAll();
     jedis.select(1);
     jedis.set("foo", "bar");
