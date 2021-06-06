@@ -858,4 +858,41 @@ public class RdbParserTest {
       }
     }
   }
+
+  @Test
+  public void memoryPolicyLRU() throws Exception {
+    if(rdbVersion >= 9) {
+      jedis.flushAll();
+      jedis.configSet("maxmemory-policy", "allkeys-lru");
+      jedis.set("foo", "bar");
+      jedis.save();
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        Assert.assertEquals("foo", str(kvp.getKey()));
+        Assert.assertEquals("bar", str(kvp.getValues().get(0)));
+        Assert.assertEquals(0L, (long)kvp.getIdle());
+      }
+      jedis.configSet("maxmemory-policy", "noeviction");
+    }
+  }
+
+  @Test
+  public void memoryPolicyLFU() throws Exception {
+    if(rdbVersion >= 9) {
+      jedis.flushAll();
+      jedis.configSet("maxmemory-policy", "allkeys-lfu");
+      jedis.set("foo", "bar");
+      jedis.save();
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        Assert.assertEquals("foo", str(kvp.getKey()));
+        Assert.assertEquals("bar", str(kvp.getValues().get(0)));
+        Assert.assertEquals(5L, (long)kvp.getFreq());
+      }
+      jedis.configSet("maxmemory-policy", "noeviction");
+    }
+  }
+
 }

@@ -57,19 +57,5 @@ public enum EntryType {
    *
    * @see Aux
    */
-  AUX,
-
-  /**
-   * Holds the LFU frequency.
-   *
-   * @see Freq
-   */
-  FREQ,
-
-  /**
-   * Holds the LRU idle time.
-   *
-   * @see Idle
-   */
-  IDLE;
+  AUX
 }

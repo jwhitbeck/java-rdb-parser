@@ -200,9 +200,11 @@ public final class RdbParser implements AutoCloseable {
           readExpireTimeMillis();
           continue;
         case FREQ:
-          return readFreq();
+          readFreq();
+          continue;
         case IDLE:
-          return readIdle();
+          readIdle();
+          continue;
         case MODULE_AUX:
           throw new UnsupportedOperationException("Redis modules are not supported");
         default:
@@ -240,12 +242,12 @@ public final class RdbParser implements AutoCloseable {
     return new Aux(readStringEncoded(), readStringEncoded());
   }
 
-  private Freq readFreq() throws IOException {
-    return new Freq(readByte());
+  private void readFreq() throws IOException {
+    nextEntry.freq = readByte();
   }
 
-  private Idle readIdle() throws IOException {
-    return new Idle(readLength());
+  private void readIdle() throws IOException {
+    nextEntry.idle = readLength();
   }
 
   private long readLength() throws IOException {

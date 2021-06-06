@@ -29,30 +29,20 @@ import java.util.List;
  */
 public final class KeyValuePair implements Entry {
 
-  byte[] expireTime;
   byte[] key;
   ValueType valueType;
   List<byte[]> values;
+  byte[] expireTime;
+  Long idle;
+  Integer freq;
 
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append(EntryType.KEY_VALUE_PAIR);
-    sb.append(" (key: ");
-    sb.append(StringUtils.getPrintableString(key));
-    if (hasExpiry()) {
-      sb.append(", expire time: ");
-      sb.append(getExpiryMillis());
-    }
-    sb.append(", ");
-    int len = getValues().size();
-    sb.append(len);
-    if (len == 1) {
-      sb.append(" value)");
-    } else {
-      sb.append(" values)");
-    }
-    return sb.toString();
+  /**
+   * Returns the key associated with this key/value pair.
+   *
+   * @return the key
+   */
+  public byte[] getKey() {
+    return key;
   }
 
   /**
@@ -67,6 +57,26 @@ public final class KeyValuePair implements Entry {
   @Override
   public EntryType getType() {
     return EntryType.KEY_VALUE_PAIR;
+  }
+
+  /**
+   * Returns the list of values (as byte-arrays) associated with this key/value pair.
+   *
+   * <p>The values in this list depend on the value type.
+   *
+   * <ul>
+   *  <li>VALUE: A singleton with the value.</li>
+   *  <li>LIST, ZIPLIST, SET, INTSET: the values in the order they appear in the RDB file.</li>
+   *  <li>HASH, HASHMAP_AS_ZIPLIST, ZIPMAP: a flattened list of key/value pairs.</li>
+   *  <li>SORTED_SET, SORTED_SET_AS_ZIPLIST, SORTED_SET2: a flattened list of key/score pairs;
+   *      the scores can be parsed using {@link RdbParser#parseSortedSetScore} (SORTED_SET and
+   *       SORTED_SET_AS_ZIPLIST) or {@link RdbParser#parseSortedSet2Score} (SORTED_SET2)}.</li>
+   * </ul>
+   *
+   * @return the list of values.
+   */
+  public List<byte[]> getValues() {
+    return values;
   }
 
   /**
@@ -118,33 +128,39 @@ public final class KeyValuePair implements Entry {
          | ((long)expireTime[0] & 0xff) <<  0;
   }
 
-
   /**
-   * Returns the key associated with this key/value pair.
-   *
-   * @return the key
+   * @return the LFU frequency, or null if not set.
    */
-  public byte[] getKey() {
-    return key;
+  public Integer getFreq() {
+    return freq;
   }
 
   /**
-   * Returns the list of values (as byte-arrays) associated with this key/value pair.
-   *
-   * <p>The values in this list depend on the value type.
-   *
-   * <ul>
-   *  <li>VALUE: A singleton with the value.</li>
-   *  <li>LIST, ZIPLIST, SET, INTSET: the values in the order they appear in the RDB file.</li>
-   *  <li>HASH, HASHMAP_AS_ZIPLIST, ZIPMAP: a flattened list of key/value pairs.</li>
-   *  <li>SORTED_SET, SORTED_SET_AS_ZIPLIST, SORTED_SET2: a flattened list of key/score pairs;
-   *      the scores can be parsed using {@link RdbParser#parseSortedSetScore} (SORTED_SET and
-   *       SORTED_SET_AS_ZIPLIST) or {@link RdbParser#parseSortedSet2Score} (SORTED_SET2)}.</li>
-   * </ul>
-   *
-   * @return the list of values.
+   * @return the LRU idel time, or null if not set.
    */
-  public List<byte[]> getValues() {
-    return values;
+  public Long getIdle() {
+    return idle;
   }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(EntryType.KEY_VALUE_PAIR);
+    sb.append(" (key: ");
+    sb.append(StringUtils.getPrintableString(key));
+    if (hasExpiry()) {
+      sb.append(", expire time: ");
+      sb.append(getExpiryMillis());
+    }
+    sb.append(", ");
+    int len = getValues().size();
+    sb.append(len);
+    if (len == 1) {
+      sb.append(" value)");
+    } else {
+      sb.append(" values)");
+    }
+    return sb.toString();
+  }
+
 }
