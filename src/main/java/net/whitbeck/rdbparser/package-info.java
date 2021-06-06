@@ -14,10 +14,10 @@
  * Provides a simple Redis RDB file parser for Java.
  *
  * <p>This library does the minimal amount of work to read entries (e.g. a new DB selector, or a
- * key/value pair with an expiry) from an RDB file, mostly limiting itself to returning byte arrays
- * or lists of byte arrays for keys and values. The caller is responsible for application-level
- * decisions like how to interpret the contents of the returned byte arrays or what types of objects
- * to instantiate from them.
+ * key/value pair with an expire time) from an RDB file, mostly limiting itself to returning byte
+ * arrays or lists of byte arrays for keys and values. The caller is responsible for
+ * application-level decisions like how to interpret the contents of the returned byte arrays or
+ * what types of objects to instantiate from them.
  *
  * <p>For example, sorted sets and hashes are parsed as a flat list of value/score pairs and
  * key/value pairs, respectively. Simple Redis values are parsed as a singleton. As expected, Redis

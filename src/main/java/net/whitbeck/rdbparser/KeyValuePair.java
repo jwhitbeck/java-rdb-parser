@@ -21,15 +21,15 @@ import java.util.List;
  *
  * <ul>
  *  <li>the key itself;</li>
- *  <li>optionally, the expiry timestamp;</li>
  *  <li>the values associated with the key.</li>
+ *  <li>optionally, the expire time;</li>
  * </ul>
  *
  * @author John Whitbeck
  */
 public final class KeyValuePair implements Entry {
 
-  byte[] expiry;
+  byte[] expireTime;
   byte[] key;
   ValueType valueType;
   List<byte[]> values;
@@ -41,7 +41,7 @@ public final class KeyValuePair implements Entry {
     sb.append(" (key: ");
     sb.append(StringUtils.getPrintableString(key));
     if (hasExpiry()) {
-      sb.append(", expiry: ");
+      sb.append(", expire time: ");
       sb.append(getExpiryMillis());
     }
     sb.append(", ");
@@ -70,51 +70,52 @@ public final class KeyValuePair implements Entry {
   }
 
   /**
-   * Returns true if this key/value pair as an expiry (either in seconds or milliseconds) associated
-   * with it, false otherwise.
+   * Returns true if this key/value pair as an expire time (either in seconds or milliseconds)
+   * associated with it, false otherwise.
    *
-   * @return whether or not this object has an expiry.
+   * @return whether or not this object has an expire time.
    */
   public boolean hasExpiry() {
-    return expiry != null;
+    return expireTime != null;
   }
 
   /**
-   * Returns the expiry in milliseconds. If the initial expiry was set in seconds in redis, the
-   * expiry is converted to milliseconds. Throws an IllegalStateException if not expiry is present.
+   * Returns the expire time in milliseconds. If the initial expire time was set in seconds in
+   * redis, the expire time is converted to milliseconds. Throws an IllegalStateException if no
+   * expire time is present.
    *
-   * @return the expiry in milliseconds.
+   * @return the expire time in milliseconds.
    */
   public long getExpiryMillis() {
-    if (expiry == null ) {
-      throw new IllegalStateException("Entry does not have an expiry");
+    if (expireTime == null ) {
+      throw new IllegalStateException("Entry does not have an expire time");
     }
-    switch (expiry.length) {
+    switch (expireTime.length) {
       case 4:
-        return parseExpiry4Bytes();
+        return parseExpireTime4Bytes();
       case 8:
-        return parseExpiry8Bytes();
+        return parseExpireTime8Bytes();
       default:
-        throw new IllegalStateException("Invalid number of expiry bytes");
+        throw new IllegalStateException("Invalid number of expire time bytes");
     }
   }
 
-  private long parseExpiry4Bytes() {
-    return 1000L * ( ((long)expiry[3] & 0xff) << 24
-                   | ((long)expiry[2] & 0xff) << 16
-                   | ((long)expiry[1] & 0xff) <<  8
-                   | ((long)expiry[0] & 0xff) <<  0);
+  private long parseExpireTime4Bytes() {
+    return 1000L * ( ((long)expireTime[3] & 0xff) << 24
+                   | ((long)expireTime[2] & 0xff) << 16
+                   | ((long)expireTime[1] & 0xff) <<  8
+                   | ((long)expireTime[0] & 0xff) <<  0);
   }
 
-  private long parseExpiry8Bytes() {
-    return ((long)expiry[7] & 0xff) << 56
-         | ((long)expiry[6] & 0xff) << 48
-         | ((long)expiry[5] & 0xff) << 40
-         | ((long)expiry[4] & 0xff) << 32
-         | ((long)expiry[3] & 0xff) << 24
-         | ((long)expiry[2] & 0xff) << 16
-         | ((long)expiry[1] & 0xff) <<  8
-         | ((long)expiry[0] & 0xff) <<  0;
+  private long parseExpireTime8Bytes() {
+    return ((long)expireTime[7] & 0xff) << 56
+         | ((long)expireTime[6] & 0xff) << 48
+         | ((long)expireTime[5] & 0xff) << 40
+         | ((long)expireTime[4] & 0xff) << 32
+         | ((long)expireTime[3] & 0xff) << 24
+         | ((long)expireTime[2] & 0xff) << 16
+         | ((long)expireTime[1] & 0xff) <<  8
+         | ((long)expireTime[0] & 0xff) <<  0;
   }
 
 

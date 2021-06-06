@@ -35,17 +35,17 @@ public enum EntryType {
   DB_SELECT,
 
   /**
-   * Denotes a key/value pair entry that may optionally have an expiry. In the RDB file, these
-   * entries are marked by a 0xfd byte (expiry timestamp in seconds), a 0xfc byte (expiry time in
-   * milliseconds), or no marker (no expiry).
+   * Denotes a key/value pair entry that may optionally have an expire time. In the RDB file, these
+   * entries are marked by a 0xfd byte (expire time in seconds), a 0xfc byte (expire time in
+   * milliseconds), or no marker (no expire time).
    *
    * @see KeyValuePair
    */
   KEY_VALUE_PAIR,
 
   /**
-   * Denotes an entry containing the database hash table size and the expiry hash table size. These
-   * entries are marked by a 0xfb byte in the RDB file.
+   * Denotes an entry containing the database hash table size and the expire time hash table
+   * size. These entries are marked by a 0xfb byte in the RDB file.
    *
    * @see ResizeDb
    */

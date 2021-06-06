@@ -19,7 +19,7 @@ package net.whitbeck.rdbparser;
  * <p>Specifically, it contains the following:
  * <ul>
  *   <li>database hash table size;</li>
- *   <li>expiry hash table size.</li>
+ *   <li>expire time hash table size.</li>
  * </ul>
  *
  * <p>Introduced in RDB version 7.
@@ -29,11 +29,11 @@ package net.whitbeck.rdbparser;
 public final class ResizeDb implements Entry {
 
   private final long dbHashTableSize;
-  private final long expiryHashTableSize;
+  private final long expireTimeHashTableSize;
 
-  ResizeDb(long dbHashTableSize, long expiryHashTableSize) {
+  ResizeDb(long dbHashTableSize, long expireTimeHashTableSize) {
     this.dbHashTableSize = dbHashTableSize;
-    this.expiryHashTableSize = expiryHashTableSize;
+    this.expireTimeHashTableSize = expireTimeHashTableSize;
   }
 
   @Override
@@ -51,17 +51,17 @@ public final class ResizeDb implements Entry {
   }
 
   /**
-   * Returns the size of the expiry hash table.
+   * Returns the size of the expire time hash table.
    *
-   * @return size of the expiry hash table.
+   * @return size of the expire time hash table.
    */
   public long getExpiryHashTableSize() {
-    return expiryHashTableSize;
+    return expireTimeHashTableSize;
   }
 
   @Override
   public String toString() {
-    return String.format("%s (db: %d, expiry: %d)",
-                         EntryType.RESIZE_DB, dbHashTableSize, expiryHashTableSize);
+    return String.format("%s (db hash table size: %d, expire time hash table size: %d)",
+                         EntryType.RESIZE_DB, dbHashTableSize, expireTimeHashTableSize);
   }
 }

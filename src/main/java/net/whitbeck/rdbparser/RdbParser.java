@@ -194,10 +194,10 @@ public final class RdbParser implements AutoCloseable {
         case AUX:
           return readAux();
         case EXPIRETIME:
-          readExpire();
+          readExpireTime();
           continue;
         case EXPIRETIME_MS:
-          readExpireMillis();
+          readExpireTimeMillis();
           continue;
         case FREQ:
           return readFreq();
@@ -367,12 +367,12 @@ public final class RdbParser implements AutoCloseable {
     }
   }
 
-  private void readExpire() throws IOException {
-    nextEntry.expiry = readBytes(4);
+  private void readExpireTime() throws IOException {
+    nextEntry.expireTime = readBytes(4);
   }
 
-  private void readExpireMillis() throws IOException {
-    nextEntry.expiry = readBytes(8);
+  private void readExpireTimeMillis() throws IOException {
+    nextEntry.expireTime = readBytes(8);
   }
 
   private void readEntry(int valueType) throws IOException {

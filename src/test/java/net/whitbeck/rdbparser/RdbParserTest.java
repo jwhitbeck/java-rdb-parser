@@ -350,19 +350,19 @@ public class RdbParserTest {
   }
 
   @Test
-  public void expiries() throws Exception {
-    long expirySecs = 3000000000L;
-    long expiryMillis = 2000000000000L;
+  public void expire() throws Exception {
+    long expireTimeSecs = 3000000000L;
+    long expireTimeMillis = 2000000000000L;
     int n = 0;
     jedis.flushAll();
-    jedis.set("noexpiry", "val");
+    jedis.set("noexpiretime", "val");
     n++;
     jedis.set("seconds", "val");
-    jedis.expireAt("seconds", expirySecs);
+    jedis.expireAt("seconds", expireTimeSecs);
     n++;
     if (!isEarlierThan(redisVersion, "2.6.0")) {
       jedis.set("millis", "val");
-      jedis.pexpireAt("millis", expiryMillis);
+      jedis.pexpireAt("millis", expireTimeMillis);
       n++;
     }
     jedis.save();
@@ -371,14 +371,14 @@ public class RdbParserTest {
       for (int i=0; i<n; ++i) {
         KeyValuePair kvp = (KeyValuePair)p.readNext();
         String k = str(kvp.getKey());
-        if (k.equals("noexpiry")) {
+        if (k.equals("noexpiretime")) {
           Assert.assertFalse(kvp.hasExpiry());
         } else if (k.equals("seconds")) {
           Assert.assertTrue(kvp.hasExpiry());
-          Assert.assertTrue(kvp.getExpiryMillis() == expirySecs * 1000);
+          Assert.assertTrue(kvp.getExpiryMillis() == expireTimeSecs * 1000);
         } else if (k.equals("millis")) {
           Assert.assertTrue(kvp.hasExpiry());
-          Assert.assertTrue(kvp.getExpiryMillis() == expiryMillis);
+          Assert.assertTrue(kvp.getExpiryMillis() == expireTimeMillis);
         }
       }
     }
@@ -388,9 +388,9 @@ public class RdbParserTest {
   public void stringRepresentations() throws Exception {
     jedis.flushAll();
     jedis.set("simple-key", "val");
-    jedis.set("key-with-expiry", "val");
-    long expiry = 2000000000L;
-    jedis.expireAt("key-with-expiry", expiry);
+    jedis.set("key-with-expire-time", "val");
+    long expireTime = 2000000000L;
+    jedis.expireAt("key-with-expire-time", expireTime);
     jedis.lpush("list-key", "one", "two", "three");
     jedis.set(new byte[]{0, 1, 2, 3}, bytes("val"));
     jedis.save();
@@ -409,16 +409,17 @@ public class RdbParserTest {
       // DB 0
       Assert.assertEquals("DB_SELECT (0)", p.readNext().toString());
       if (rdbVersion >= 7) {
-        Assert.assertEquals("RESIZE_DB (db: 4, expiry: 1)", p.readNext().toString());
+        Assert.assertEquals("RESIZE_DB (db hash table size: 4, expire time hash table size: 1)",
+                            p.readNext().toString());
       }
       for (int i=0; i<4; ++i) {
         KeyValuePair kvp = (KeyValuePair)p.readNext();
         byte[] k = kvp.getKey();
         if (Arrays.equals(k, bytes("simple-key"))) {
           Assert.assertEquals("KEY_VALUE_PAIR (key: simple-key, 1 value)", kvp.toString());
-        } else if (Arrays.equals(k, bytes("key-with-expiry"))) {
-          Assert.assertEquals("KEY_VALUE_PAIR (key: key-with-expiry, expiry: "
-                              + expiry * 1000 + ", 1 value)",
+        } else if (Arrays.equals(k, bytes("key-with-expire-time"))) {
+          Assert.assertEquals("KEY_VALUE_PAIR (key: key-with-expire-time, expire time: "
+                              + expireTime * 1000 + ", 1 value)",
                               kvp.toString());
         } else if (Arrays.equals(bytes("list-key"), k)) {
           Assert.assertEquals("KEY_VALUE_PAIR (key: list-key, 3 values)", kvp.toString());
