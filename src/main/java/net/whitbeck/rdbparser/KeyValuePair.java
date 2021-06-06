@@ -29,29 +29,10 @@ import java.util.List;
  */
 public final class KeyValuePair implements Entry {
 
-  private byte[] ts;
-  private long expiry;
-  private final boolean hasExpiry;
-  private final byte[] key;
-  private final ValueType valueType;
-  private List<byte[]> values;
-  private LazyList lazyList;
-
-  KeyValuePair(ValueType valueType, byte [] ts, byte[] key, List<byte[]> values) {
-    this.valueType = valueType;
-    this.ts = ts;
-    this.key = key;
-    this.hasExpiry = ts != null;
-    this.values = values;
-  }
-
-  KeyValuePair(ValueType valueType, byte [] ts, byte[] key, LazyList lazyList) {
-    this.valueType = valueType;
-    this.ts = ts;
-    this.key = key;
-    this.hasExpiry = ts != null;
-    this.lazyList = lazyList;
-  }
+  byte[] expiry;
+  byte[] key;
+  ValueType valueType;
+  List<byte[]> values;
 
   @Override
   public String toString() {
@@ -95,7 +76,7 @@ public final class KeyValuePair implements Entry {
    * @return whether or not this object has an expiry.
    */
   public boolean hasExpiry() {
-    return hasExpiry;
+    return expiry != null;
   }
 
   /**
@@ -105,41 +86,35 @@ public final class KeyValuePair implements Entry {
    * @return the expiry in milliseconds.
    */
   public long getExpiryMillis() {
-    if (!hasExpiry) {
+    if (expiry == null ) {
       throw new IllegalStateException("Entry does not have an expiry");
     }
-    if (ts != null) {
-      switch (ts.length) {
-        case 4:
-          expiry = parseExpiry4Bytes();
-          break;
-        case 8:
-          expiry = parseExpiry8Bytes();
-          break;
-        default:
-          throw new IllegalStateException("Invalid number of timestamp bytes");
-      }
-      ts = null;
+    switch (expiry.length) {
+      case 4:
+        return parseExpiry4Bytes();
+      case 8:
+        return parseExpiry8Bytes();
+      default:
+        throw new IllegalStateException("Invalid number of expiry bytes");
     }
-    return expiry;
   }
 
   private long parseExpiry4Bytes() {
-    return 1000L * ( ((long)ts[3] & 0xff) << 24
-                   | ((long)ts[2] & 0xff) << 16
-                   | ((long)ts[1] & 0xff) <<  8
-                   | ((long)ts[0] & 0xff) <<  0);
+    return 1000L * ( ((long)expiry[3] & 0xff) << 24
+                   | ((long)expiry[2] & 0xff) << 16
+                   | ((long)expiry[1] & 0xff) <<  8
+                   | ((long)expiry[0] & 0xff) <<  0);
   }
 
   private long parseExpiry8Bytes() {
-    return ((long)ts[7] & 0xff) << 56
-         | ((long)ts[6] & 0xff) << 48
-         | ((long)ts[5] & 0xff) << 40
-         | ((long)ts[4] & 0xff) << 32
-         | ((long)ts[3] & 0xff) << 24
-         | ((long)ts[2] & 0xff) << 16
-         | ((long)ts[1] & 0xff) <<  8
-         | ((long)ts[0] & 0xff) <<  0;
+    return ((long)expiry[7] & 0xff) << 56
+         | ((long)expiry[6] & 0xff) << 48
+         | ((long)expiry[5] & 0xff) << 40
+         | ((long)expiry[4] & 0xff) << 32
+         | ((long)expiry[3] & 0xff) << 24
+         | ((long)expiry[2] & 0xff) << 16
+         | ((long)expiry[1] & 0xff) <<  8
+         | ((long)expiry[0] & 0xff) <<  0;
   }
 
 
@@ -169,10 +144,6 @@ public final class KeyValuePair implements Entry {
    * @return the list of values.
    */
   public List<byte[]> getValues() {
-    if (values == null) {
-      values = lazyList.get();
-      lazyList = null;
-    }
     return values;
   }
 }

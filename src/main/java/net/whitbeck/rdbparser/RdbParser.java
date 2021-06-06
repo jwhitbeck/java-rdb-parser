@@ -53,9 +53,10 @@ public final class RdbParser implements AutoCloseable {
 
   /* Parsing state */
   private int version;
-  private boolean isInitialized = false;
-  private boolean hasNext = false;
   private long bytesBuffered = 0;
+  private boolean isInitialized = false;
+  private KeyValuePair nextEntry = null;
+  private boolean hasNext = false;
 
   public RdbParser(ReadableByteChannel ch) {
     this.ch = ch;
@@ -147,8 +148,9 @@ public final class RdbParser implements AutoCloseable {
     if (version < 1 || version > 9) {
       throw new IllegalStateException("Unknown version");
     }
-    isInitialized = true;
+    nextEntry = new KeyValuePair();
     hasNext = true;
+    isInitialized = true;
   }
 
   /**
@@ -172,36 +174,43 @@ public final class RdbParser implements AutoCloseable {
    * @throws IOException if there is an error reading from the underlying channel.
    */
   public Entry readNext() throws IOException {
-    if (!hasNext) {
-      if (!isInitialized) {
-        init();
-        return readNext();
-      } else { // EOF reached
-        return null;
+    while (true) {
+      if (!hasNext) {
+        if (!isInitialized) {
+          init();
+          continue;
+        } else { // EOF reached
+          return null;
+        }
       }
-    }
-    int valueType = readByte();
-    switch (valueType) {
-      case EOF:
-        return readEof();
-      case SELECTDB:
-        return readDbSelect();
-      case RESIZEDB:
-        return readResizeDb();
-      case AUX:
-        return readAux();
-      case EXPIRETIME:
-        return readEntrySeconds();
-      case EXPIRETIME_MS:
-        return readEntryMillis();
-      case FREQ:
-        return readFreq();
-      case IDLE:
-        return readIdle();
-      case MODULE_AUX:
-        throw new UnsupportedOperationException("Redis modules are not supported");
-      default:
-        return readEntry(null, valueType);
+      int valueType = readByte();
+      switch (valueType) {
+        case EOF:
+          return readEof();
+        case SELECTDB:
+          return readSelectDb();
+        case RESIZEDB:
+          return readResizeDb();
+        case AUX:
+          return readAux();
+        case EXPIRETIME:
+          readExpire();
+          continue;
+        case EXPIRETIME_MS:
+          readExpireMillis();
+          continue;
+        case FREQ:
+          return readFreq();
+        case IDLE:
+          return readIdle();
+        case MODULE_AUX:
+          throw new UnsupportedOperationException("Redis modules are not supported");
+        default:
+          readEntry(valueType);
+          KeyValuePair entry = nextEntry;
+          nextEntry = new KeyValuePair();
+          return entry;
+      }
     }
   }
 
@@ -219,7 +228,7 @@ public final class RdbParser implements AutoCloseable {
     return new Eof(checksum);
   }
 
-  private DbSelect readDbSelect() throws IOException {
+  private DbSelect readSelectDb() throws IOException {
     return new DbSelect(readLength());
   }
 
@@ -358,44 +367,56 @@ public final class RdbParser implements AutoCloseable {
     }
   }
 
-  private KeyValuePair readEntrySeconds() throws IOException {
-    return readEntry(readBytes(4), readByte());
+  private void readExpire() throws IOException {
+    nextEntry.expiry = readBytes(4);
   }
 
-  private KeyValuePair readEntryMillis() throws IOException {
-    return readEntry(readBytes(8), readByte());
+  private void readExpireMillis() throws IOException {
+    nextEntry.expiry = readBytes(8);
   }
 
-  private KeyValuePair readEntry(byte[] ts, int valueType) throws IOException {
-    byte[] key = readStringEncoded();
+  private void readEntry(int valueType) throws IOException {
+    nextEntry.key = readStringEncoded();
     switch (valueType) {
       case 0:
-        return readValue(ts, key);
+        readValue();
+        break;
       case 1:
-        return readList(ts, key);
+        readList();
+        break;
       case 2:
-        return readSet(ts, key);
+        readSet();
+        break;
       case 3:
-        return readSortedSet(ts, key);
+        readSortedSet();
+        break;
       case 4:
-        return readHash(ts, key);
+        readHash();
+        break;
       case 5:
-        return readSortedSet2(ts, key);
+        readSortedSet2();
+        break;
       case 6: // Modules v1
       case 7: // Modules v2
         throw new UnsupportedOperationException("Redis modules are not supported");
       case 9:
-        return readZipMap(ts, key);
+        readZipMap();
+        break;
       case 10:
-        return readZipList(ts, key);
+        readZipList();
+        break;
       case 11:
-        return readIntSet(ts, key);
+        readIntSet();
+        break;
       case 12:
-        return readSortedSetAsZipList(ts, key);
+        readSortedSetAsZipList();
+        break;
       case 13:
-        return readHashmapAsZipList(ts, key);
+        readHashmapAsZipList();
+        break;
       case 14:
-        return readQuickList(ts, key);
+        readQuickList();
+        break;
       case 15: // Steam ListPacks
         throw new UnsupportedOperationException("Redis streams are not supported");
       default:
@@ -403,11 +424,12 @@ public final class RdbParser implements AutoCloseable {
     }
   }
 
-  private KeyValuePair readValue(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(ValueType.VALUE, ts, key, Arrays.asList(readStringEncoded()));
+  private void readValue() throws IOException {
+    nextEntry.valueType = ValueType.VALUE;
+    nextEntry.values = Arrays.asList(readStringEncoded());
   }
 
-  private KeyValuePair readList(byte[] ts, byte[] key) throws IOException {
+  private void readList() throws IOException {
     long len = readLength();
     if (len > Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Lists with more than " + Integer.MAX_VALUE
@@ -418,10 +440,11 @@ public final class RdbParser implements AutoCloseable {
     for (int i = 0; i < size; ++i) {
       list.add(readStringEncoded());
     }
-    return new KeyValuePair(ValueType.LIST, ts, key, list);
+    nextEntry.valueType = ValueType.LIST;
+    nextEntry.values = list;
   }
 
-  private KeyValuePair readSet(byte[] ts, byte[] key) throws IOException {
+  private void readSet() throws IOException {
     long len = readLength();
     if (len > Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Sets with more than " + Integer.MAX_VALUE
@@ -432,10 +455,11 @@ public final class RdbParser implements AutoCloseable {
     for (int i = 0; i < size; ++i) {
       set.add(readStringEncoded());
     }
-    return new KeyValuePair(ValueType.SET, ts, key, set);
+    nextEntry.valueType = ValueType.SET;
+    nextEntry.values = set;
   }
 
-  private KeyValuePair readSortedSet(byte[] ts, byte[] key) throws IOException {
+  private void readSortedSet() throws IOException {
     long len = readLength();
     if (len > (Integer.MAX_VALUE / 2)) {
       throw new IllegalArgumentException("SortedSets with more than " + (Integer.MAX_VALUE / 2)
@@ -447,10 +471,11 @@ public final class RdbParser implements AutoCloseable {
       valueScoresPairs.add(readStringEncoded());
       valueScoresPairs.add(readDoubleString());
     }
-    return new KeyValuePair(ValueType.SORTED_SET, ts, key, valueScoresPairs);
+    nextEntry.valueType = ValueType.SORTED_SET;
+    nextEntry.values = valueScoresPairs;
   }
 
-  private KeyValuePair readSortedSet2(byte[] ts, byte[] key) throws IOException {
+  private void readSortedSet2() throws IOException {
     long len = readLength();
     if (len > (Integer.MAX_VALUE / 2)) {
       throw new IllegalArgumentException("SortedSets with more than " + (Integer.MAX_VALUE / 2)
@@ -462,10 +487,11 @@ public final class RdbParser implements AutoCloseable {
       valueScoresPairs.add(readStringEncoded());
       valueScoresPairs.add(readBytes(8));
     }
-    return new KeyValuePair(ValueType.SORTED_SET2, ts, key, valueScoresPairs);
+    nextEntry.valueType = ValueType.SORTED_SET2;
+    nextEntry.values = valueScoresPairs;
   }
 
-  private KeyValuePair readHash(byte[] ts, byte[] key) throws IOException {
+  private void readHash() throws IOException {
     long len = readLength();
     if (len > (Integer.MAX_VALUE / 2)) {
       throw new IllegalArgumentException("Hashes with more than " + (Integer.MAX_VALUE / 2)
@@ -477,32 +503,36 @@ public final class RdbParser implements AutoCloseable {
       kvPairs.add(readStringEncoded());
       kvPairs.add(readStringEncoded());
     }
-    return new KeyValuePair(ValueType.HASH, ts, key, kvPairs);
+    nextEntry.valueType = ValueType.HASH;
+    nextEntry.values = kvPairs;
   }
 
-  private KeyValuePair readZipMap(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(ValueType.ZIPMAP, ts, key, new ZipMap(readStringEncoded()));
+  private void readZipMap() throws IOException {
+    nextEntry.valueType = ValueType.ZIPMAP;
+    nextEntry.values = new ZipMap(readStringEncoded());
   }
 
-  private KeyValuePair readZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(ValueType.ZIPLIST, ts, key, new ZipList(readStringEncoded()));
+  private void readZipList() throws IOException {
+    nextEntry.valueType = ValueType.ZIPLIST;
+    nextEntry.values = new ZipList(readStringEncoded());
   }
 
-  private KeyValuePair readIntSet(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(ValueType.INTSET, ts, key, new IntSet(readStringEncoded()));
+  private void readIntSet() throws IOException {
+    nextEntry.valueType = ValueType.INTSET;
+    nextEntry.values = new IntSet(readStringEncoded());
   }
 
-  private KeyValuePair readSortedSetAsZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(ValueType.SORTED_SET_AS_ZIPLIST, ts, key,
-                            new SortedSetAsZipList(readStringEncoded()));
+  private void readSortedSetAsZipList() throws IOException {
+    nextEntry.valueType = ValueType.SORTED_SET_AS_ZIPLIST;
+    nextEntry.values = new SortedSetAsZipList(readStringEncoded());
   }
 
-  private KeyValuePair readHashmapAsZipList(byte[] ts, byte[] key) throws IOException {
-    return new KeyValuePair(ValueType.HASHMAP_AS_ZIPLIST, ts, key,
-                            new ZipList(readStringEncoded()));
+  private void readHashmapAsZipList() throws IOException {
+    nextEntry.valueType = ValueType.HASHMAP_AS_ZIPLIST;
+    nextEntry.values = new ZipList(readStringEncoded());
   }
 
-  private KeyValuePair readQuickList(byte[] ts, byte[] key) throws IOException {
+  private void readQuickList() throws IOException {
     long len = readLength();
     if (len > Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Quicklists with more than " + Integer.MAX_VALUE
@@ -513,7 +543,8 @@ public final class RdbParser implements AutoCloseable {
     for (int i = 0; i < size; ++i) {
       ziplists.add(readStringEncoded());
     }
-    return new KeyValuePair(ValueType.QUICKLIST, ts, key, new QuickList(ziplists));
+    nextEntry.valueType = ValueType.QUICKLIST;
+    nextEntry.values = new QuickList(ziplists);
   }
 
   /**
