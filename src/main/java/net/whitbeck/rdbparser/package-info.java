@@ -28,22 +28,27 @@
  * needed. This allows the caller to efficiently skip over these entries or defer their decoding to
  * a worker thread.
  *
- * <p>RDB files created by all versions of Redis through 4.0.x are supported (i.e., RDB versions 1
- * through 8). Redis modules, introduced in RDB version 8, are not currently supported. If you need
- * them, please open an issue or a pull request.
+ * <p>RDB files created by all versions of Redis through 6.2.x are supported (i.e., RDB versions 1 through 9). Some features, however, are not supported:
+ *
+ * <ul>
+ *    <li>Modules, introduced in RDB version 8</li>
+ *   <li>Streams, introduced in RDB version 9.</li>
+ * </ul>
+ *
+ * <p>If you need them, please open an issue or a pull request.
  *
  * <p>Implemenation is not thread safe.
  *
- * <p>The last RDB format version is 8. The source of truth is the <a
+ * <p>As of June 2021, the most recent RDB format version is 9. The source of truth is the <a
  * href="https://github.com/antirez/redis/blob/unstable/src/rdb.h">rdb.h</a> file in the <a
  * href="https://github.com/antirez/redis">Redis repo</a>. The following resources provide a good
- * overview of the RDB format up to version 7 (as of December 2017).
+ * overview of the RDB format.
  *
  * <ul>
  *   <li>
  *     <a href="http://rdb.fnordig.de/file_format.html">
  *      RDB file format
- *     </a>
+ *     </a> (up to version 7).
  *   </li>
  *   <li>
  *     <a href="https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format">

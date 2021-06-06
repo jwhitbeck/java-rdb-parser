@@ -73,7 +73,7 @@ public enum ValueType {
   HASHMAP_AS_ZIPLIST,
 
   /**
-   * A linked list of ziplists to achieve good compression on lists of any length
+   * A linked list of ziplists to achieve good compression on lists of any length.
    */
   QUICKLIST,
 
