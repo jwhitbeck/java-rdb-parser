@@ -15,7 +15,7 @@ package net.whitbeck.rdbparser;
 import java.util.ArrayList;
 import java.util.List;
 
-final class QuickList implements LazyList {
+final class QuickList extends LazyList<byte[]> {
 
   private final List<byte[]> ziplists;
 
@@ -24,10 +24,10 @@ final class QuickList implements LazyList {
   }
 
   @Override
-  public List<byte[]> get() {
+  protected List<byte[]> realize() {
     List<byte[]> list = new ArrayList<byte[]>();
     for (byte[] envelope : ziplists) {
-      list.addAll(new ZipList(envelope).get());
+      list.addAll(new ZipList(envelope).realize());
     }
     return list;
   }

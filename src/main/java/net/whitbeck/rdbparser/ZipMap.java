@@ -15,7 +15,7 @@ package net.whitbeck.rdbparser;
 import java.util.ArrayList;
 import java.util.List;
 
-final class ZipMap implements LazyList {
+final class ZipMap extends LazyList<byte[]> {
 
   private final byte[] envelope;
 
@@ -24,7 +24,7 @@ final class ZipMap implements LazyList {
   }
 
   @Override
-  public List<byte[]> get() {
+  protected List<byte[]> realize() {
     // The structure of the zip map is:
     // <zmlen><len>"foo"<len><free>"bar"<len>"hello"<len><free>"world"<zmend>
 

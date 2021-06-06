@@ -16,7 +16,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-final class ZipList implements LazyList {
+final class ZipList extends LazyList<byte[]> {
 
   private static final Charset ASCII = Charset.forName("ASCII");
   private final byte[] envelope;
@@ -26,7 +26,7 @@ final class ZipList implements LazyList {
   }
 
   @Override
-  public List<byte[]> get() {
+  protected List<byte[]> realize() {
     // skip the first 8 bytes representing the total size in bytes of the ziplist and the offset to
     // the last element.
     int pos = 8;

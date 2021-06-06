@@ -16,7 +16,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-final class IntSet implements LazyList {
+final class IntSet extends LazyList<byte[]> {
 
   private static final Charset ASCII = Charset.forName("ASCII");
 
@@ -85,7 +85,7 @@ final class IntSet implements LazyList {
   }
 
   @Override
-  public List<byte[]> get() {
+  protected List<byte[]> realize() {
     int encoding = getEncoding();
     int num = getNumInts();
     switch (encoding) {

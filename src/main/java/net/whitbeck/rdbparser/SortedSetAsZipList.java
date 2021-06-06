@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 
-final class SortedSetAsZipList implements LazyList {
+final class SortedSetAsZipList extends LazyList<byte[]> {
 
   private static final Charset ASCII = Charset.forName("ASCII");
 
@@ -32,8 +32,8 @@ final class SortedSetAsZipList implements LazyList {
   }
 
   @Override
-  public List<byte[]> get() {
-    List<byte[]> values = new ZipList(envelope).get();
+  protected List<byte[]> realize() {
+    List<byte[]> values = new ZipList(envelope).realize();
     // fix the "+inf", "-inf", and "nan" values
     for (ListIterator<byte[]> i = values.listIterator(); i.hasNext(); ) {
       byte[] val = i.next();
