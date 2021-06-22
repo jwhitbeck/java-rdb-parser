@@ -192,7 +192,7 @@ public final class RdbParser implements AutoCloseable {
         case RESIZEDB:
           return readResizeDb();
         case AUX:
-          return readAux();
+          return readAuxField();
         case EXPIRETIME:
           readExpireTime();
           continue;
@@ -238,8 +238,8 @@ public final class RdbParser implements AutoCloseable {
     return new ResizeDb(readLength(), readLength());
   }
 
-  private Aux readAux() throws IOException {
-    return new Aux(readStringEncoded(), readStringEncoded());
+  private AuxField readAuxField() throws IOException {
+    return new AuxField(readStringEncoded(), readStringEncoded());
   }
 
   private void readFreq() throws IOException {

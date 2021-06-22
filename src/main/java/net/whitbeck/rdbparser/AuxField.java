@@ -13,25 +13,25 @@
 package net.whitbeck.rdbparser;
 
 /**
- * <p>Auxiliary entries contain a key value pair that holds metadata about the RDB file.
+ * <p>An auxiliary field contains a key value pair that holds metadata about the RDB file.
  *
  * <p>Introduced in RDB version 7.
  *
  * @author John Whitbeck
  */
-public final class Aux implements Entry {
+public final class AuxField implements Entry {
 
   private final byte[] key;
   private final byte[] value;
 
-  Aux(byte[] key, byte[] value) {
+  AuxField(byte[] key, byte[] value) {
     this.key = key;
     this.value = value;
   }
 
   @Override
   public EntryType getType() {
-    return EntryType.AUX;
+    return EntryType.AUX_FIELD;
   }
 
   /**
@@ -55,7 +55,7 @@ public final class Aux implements Entry {
   @Override
   public String toString() {
     return String.format("%s (k: %s, v: %s)",
-                         EntryType.AUX,
+                         EntryType.AUX_FIELD,
                          StringUtils.getPrintableString(key),
                          StringUtils.getPrintableString(value));
   }

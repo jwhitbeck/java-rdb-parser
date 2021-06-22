@@ -223,36 +223,36 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       Entry t;
-      Aux aux;
+      AuxField aux;
       if (rdbVersion >= 7) {
         // AUX redis-ver = 3.2.0
         t = p.readNext();
-        Assert.assertEquals(EntryType.AUX, t.getType());
-        aux = (Aux)t;
+        Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
+        aux = (AuxField)t;
         Assert.assertArrayEquals(bytes("redis-ver"), aux.getKey());
         Assert.assertArrayEquals(bytes(redisVersion), aux.getValue());
         // AUX redis-bits = 64
         t = p.readNext();
-        Assert.assertEquals(EntryType.AUX, t.getType());
-        aux = (Aux)t;
+        Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
+        aux = (AuxField)t;
         Assert.assertArrayEquals(bytes("redis-bits"), aux.getKey());
         Assert.assertArrayEquals(bytes("64"), aux.getValue());
         // AUX ctime
         t = p.readNext();
-        Assert.assertEquals(EntryType.AUX, t.getType());
-        aux = (Aux)t;
+        Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
+        aux = (AuxField)t;
         Assert.assertArrayEquals(bytes("ctime"), aux.getKey());
         // AUX used-mem = 821176
         t = p.readNext();
-        Assert.assertEquals(EntryType.AUX, t.getType());
-        aux = (Aux)t;
+        Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
+        aux = (AuxField)t;
         Assert.assertArrayEquals(bytes("used-mem"), aux.getKey());
       }
       if (rdbVersion >= 8) {
         // AUX aof-preamble = 0
         t = p.readNext();
-        Assert.assertEquals(EntryType.AUX, t.getType());
-        aux = (Aux)t;
+        Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
+        aux = (AuxField)t;
         Assert.assertArrayEquals(bytes("aof-preamble"), aux.getKey());
         Assert.assertArrayEquals(bytes("0"), aux.getValue());
       }
@@ -264,7 +264,7 @@ public class RdbParserTest {
     }
   }
 
-  void skipAux(RdbParser p) throws IOException {
+  void skipAuxFields(RdbParser p) throws IOException {
     // Skip the AUX entries at the beginning of the file.
     int numEntries = 0;
     switch (rdbVersion) {
@@ -294,7 +294,7 @@ public class RdbParserTest {
       ResizeDb resizeDb;
       SelectDb selectDb;
       KeyValuePair kvp;
-      skipAux(p);
+      skipAuxFields(p);
       // DB SELECTOR 0
       t = p.readNext();
       Assert.assertEquals(EntryType.SELECT_DB, t.getType());
@@ -342,7 +342,7 @@ public class RdbParserTest {
   }
 
   void skipToFirstKeyValuePair(RdbParser p) throws IOException {
-    skipAux(p); // Skip the AUX entries at top of file
+    skipAuxFields(p); // Skip the AUX fields at top of file
     p.readNext(); // Skip the DB SELECTOR entry
     if (rdbVersion >= 7) {
       p.readNext(); // Skip the RESIZE_DB entry
@@ -395,14 +395,14 @@ public class RdbParserTest {
     try (RdbParser p = openTestParser()) {
       if (rdbVersion >= 7) {
         // AUX entries
-        Assert.assertEquals("AUX (k: redis-ver, v: " + redisVersion + ")", p.readNext().toString());
-        Assert.assertEquals("AUX (k: redis-bits, v: 64)", p.readNext().toString());
-        Assert.assertTrue(Pattern.matches("AUX \\(k: ctime, v: \\d{10}\\)", p.readNext().toString()));
-        Assert.assertTrue(Pattern.matches("AUX \\(k: used-mem, v: \\d+\\)", p.readNext().toString()));
+        Assert.assertEquals("AUX_FIELD (k: redis-ver, v: " + redisVersion + ")", p.readNext().toString());
+        Assert.assertEquals("AUX_FIELD (k: redis-bits, v: 64)", p.readNext().toString());
+        Assert.assertTrue(Pattern.matches("AUX_FIELD \\(k: ctime, v: \\d{10}\\)", p.readNext().toString()));
+        Assert.assertTrue(Pattern.matches("AUX_FIELD \\(k: used-mem, v: \\d+\\)", p.readNext().toString()));
       }
       if (rdbVersion >= 8) {
-        // more AUX entries
-        Assert.assertEquals("AUX (k: aof-preamble, v: 0)", p.readNext().toString());
+        // more AUX fields
+        Assert.assertEquals("AUX_FIELD (k: aof-preamble, v: 0)", p.readNext().toString());
       }
       // DB 0
       Assert.assertEquals("SELECT_DB (0)", p.readNext().toString());

@@ -56,7 +56,7 @@ public enum EntryType {
    * Denotes an auxiliary field for storing a key/value pair containing metadata about the RDB
    * file. These entries are marked by a 0xfa byte in the RDB file.
    *
-   * @see Aux
+   * @see AuxField
    */
-  AUX
+  AUX_FIELD
 }
