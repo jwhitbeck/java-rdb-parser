@@ -292,14 +292,14 @@ public class RdbParserTest {
     try (RdbParser p = openTestParser()) {
       Entry t;
       ResizeDb resizeDb;
-      DbSelect dbSelect;
+      SelectDb selectDb;
       KeyValuePair kvp;
       skipAux(p);
-      // DB_SELECTOR 0
+      // DB SELECTOR 0
       t = p.readNext();
-      Assert.assertEquals(EntryType.DB_SELECT, t.getType());
-      dbSelect = (DbSelect)t;
-      Assert.assertEquals(0, dbSelect.getId());
+      Assert.assertEquals(EntryType.SELECT_DB, t.getType());
+      selectDb = (SelectDb)t;
+      Assert.assertEquals(0, selectDb.getId());
       if (rdbVersion >= 7) {
         // Resize DB
         t = p.readNext();
@@ -315,11 +315,11 @@ public class RdbParserTest {
       Assert.assertEquals(ValueType.VALUE, kvp.getValueType());
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("baz", str(kvp.getValues().get(0)));
-      // DB_SELECTOR 1
+      // DB SELECTOR 1
       t = p.readNext();
-      Assert.assertEquals(EntryType.DB_SELECT, t.getType());
-      dbSelect = (DbSelect)t;
-      Assert.assertEquals(1, dbSelect.getId());
+      Assert.assertEquals(EntryType.SELECT_DB, t.getType());
+      selectDb = (SelectDb)t;
+      Assert.assertEquals(1, selectDb.getId());
       if (rdbVersion >= 7) {
         // Resize DB
         t = p.readNext();
@@ -343,7 +343,7 @@ public class RdbParserTest {
 
   void skipToFirstKeyValuePair(RdbParser p) throws IOException {
     skipAux(p); // Skip the AUX entries at top of file
-    p.readNext(); // Skip the DB_SELECTOR entry
+    p.readNext(); // Skip the DB SELECTOR entry
     if (rdbVersion >= 7) {
       p.readNext(); // Skip the RESIZE_DB entry
     }
@@ -407,7 +407,7 @@ public class RdbParserTest {
         Assert.assertEquals("AUX (k: aof-preamble, v: 0)", p.readNext().toString());
       }
       // DB 0
-      Assert.assertEquals("DB_SELECT (0)", p.readNext().toString());
+      Assert.assertEquals("SELECT_DB (0)", p.readNext().toString());
       if (rdbVersion >= 7) {
         Assert.assertEquals("RESIZE_DB (db hash table size: 4, expire time hash table size: 1)",
                             p.readNext().toString());

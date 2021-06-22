@@ -15,9 +15,9 @@ package net.whitbeck.rdbparser;
 public interface Entry {
 
   /**
-   * Returns the entry type.
+   * Returns one of EOF, SELECT_DB, KEY_VALUE_PAIR, RESIZE_DB, or AUX.
    *
-   * @return one of EOF, DB_SELECT, or KEY_VALUE_PAIR
+   * @return the entry type.
    */
   EntryType getType();
 }

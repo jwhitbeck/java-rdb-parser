@@ -14,22 +14,22 @@ package net.whitbeck.rdbparser;
 
 /**
  * <p>DB selection entries mark the beginning of a new database in the RDB dump file. All subsequent
- * {@link KeyValuePair}s until the next {@link DbSelect} or {@link Eof} entry belong to this
+ * {@link KeyValuePair}s until the next {@link SelectDb} or {@link Eof} entry belong to this
  * database.
  *
  * @author John Whitbeck
  */
-public final class DbSelect implements Entry {
+public final class SelectDb implements Entry {
 
   private final long id;
 
-  DbSelect(long id) {
+  SelectDb(long id) {
     this.id = id;
   }
 
   @Override
   public EntryType getType() {
-    return EntryType.DB_SELECT;
+    return EntryType.SELECT_DB;
   }
 
   /**
@@ -43,6 +43,6 @@ public final class DbSelect implements Entry {
 
   @Override
   public String toString() {
-    return EntryType.DB_SELECT + " (" + id + ")";
+    return EntryType.SELECT_DB + " (" + id + ")";
   }
 }

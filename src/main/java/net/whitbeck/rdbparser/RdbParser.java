@@ -230,8 +230,8 @@ public final class RdbParser implements AutoCloseable {
     return new Eof(checksum);
   }
 
-  private DbSelect readSelectDb() throws IOException {
-    return new DbSelect(readLength());
+  private SelectDb readSelectDb() throws IOException {
+    return new SelectDb(readLength());
   }
 
   private ResizeDb readResizeDb() throws IOException {

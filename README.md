@@ -96,8 +96,8 @@ public class RdbFilePrinter {
       while ((e = parser.readNext()) != null) {
         switch (e.getType()) {
 
-        case DB_SELECT:
-          System.out.println("Processing DB: " + ((DbSelect)e).getId());
+        case SELECT_DB:
+          System.out.println("Processing DB: " + ((SelectDb)e).getId());
           System.out.println("------------");
           break;
 

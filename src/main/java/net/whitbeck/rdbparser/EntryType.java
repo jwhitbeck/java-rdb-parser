@@ -30,9 +30,9 @@ public enum EntryType {
   /**
    * Denotes a DB selection entry. These entries are marked by a 0xfe byte in the RDB file.
    *
-   * @see DbSelect
+   * @see SelectDb
    */
-  DB_SELECT,
+  SELECT_DB,
 
   /**
    * Denotes a key/value pair entry that may optionally have an expire time, an LFU frequency, or an
