@@ -35,9 +35,10 @@ public enum EntryType {
   DB_SELECT,
 
   /**
-   * Denotes a key/value pair entry that may optionally have an expire time. In the RDB file, these
-   * entries are marked by a 0xfd byte (expire time in seconds), a 0xfc byte (expire time in
-   * milliseconds), or no marker (no expire time).
+   * Denotes a key/value pair entry that may optionally have an expire time, an LFU frequency, or an
+   * LRU idle time. In the RDB file, these entries are marked by a 0xfd byte (expire time in
+   * seconds), a 0xfc byte (expire time in milliseconds), a 0xf9 byte (LFU frequency), a 0xf8 byte
+   * (LRU idle time), or no marker (no expire time).
    *
    * @see KeyValuePair
    */

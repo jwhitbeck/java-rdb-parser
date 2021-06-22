@@ -21,8 +21,10 @@ import java.util.List;
  *
  * <ul>
  *  <li>the key itself;</li>
- *  <li>the values associated with the key.</li>
- *  <li>optionally, the expire time;</li>
+ *  <li>the values associated with the key;</li>
+ *  <li>the expire time (optional);</li>
+ *  <li>the LFU frequency (optional); and<li>
+ *  <li>the LRU idle time (optional).
  * </ul>
  *
  * @author John Whitbeck
@@ -80,7 +82,7 @@ public final class KeyValuePair implements Entry {
   }
 
   /**
-   * Returns true if this key/value pair as an expire time (either in seconds or milliseconds)
+   * Returns true if this key/value pair has an expire time (either in seconds or milliseconds)
    * associated with it, false otherwise.
    *
    * @return whether or not this object has an expire time.
@@ -129,14 +131,18 @@ public final class KeyValuePair implements Entry {
   }
 
   /**
-   * @return the LFU frequency, or null if not set.
+   * Returns the LFU frequency (logarithmic with a 0-255 range) , or null if not set.
+   *
+   * @return the LFU frequency
    */
   public Integer getFreq() {
     return freq;
   }
 
   /**
-   * @return the LRU idel time, or null if not set.
+   * Returns the LRU frequency (in seconds), or null if not set.
+   *
+   * @return the LRU idle time
    */
   public Long getIdle() {
     return idle;

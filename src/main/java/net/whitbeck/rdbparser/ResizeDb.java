@@ -18,7 +18,7 @@ package net.whitbeck.rdbparser;
  *
  * <p>Specifically, it contains the following:
  * <ul>
- *   <li>database hash table size;</li>
+ *   <li>database hash table size; and</li>
  *   <li>expire time hash table size.</li>
  * </ul>
  *

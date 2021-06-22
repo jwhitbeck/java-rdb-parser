@@ -13,7 +13,7 @@
 package net.whitbeck.rdbparser;
 
 /**
- * <p>Auxiliary entries contain a key value pair to holds metadata about the RDB file.
+ * <p>Auxiliary entries contain a key value pair that holds metadata about the RDB file.
  *
  * <p>Introduced in RDB version 7.
  *
@@ -35,7 +35,7 @@ public final class Aux implements Entry {
   }
 
   /**
-   * Returns the key
+   * Returns the key.
    *
    * @return key
    */
@@ -44,7 +44,7 @@ public final class Aux implements Entry {
   }
 
   /**
-   * Returns the value
+   * Returns the value.
    *
    * @return value
    */

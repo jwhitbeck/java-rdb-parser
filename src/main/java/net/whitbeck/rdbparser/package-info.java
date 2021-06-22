@@ -24,20 +24,21 @@
  * lists and sets are parsed as lists of values.
  *
  * <p>Furthermore, this library performs lazy decoding of the packed encodings (ZipMap, ZipList,
- * Hashmap as ZipList, Sorted Set as ZipList, and Intset) such that those are only decoded when
- * needed. This allows the caller to efficiently skip over these entries or defer their decoding to
- * a worker thread.
+ * Hashmap as ZipList, Sorted Set as ZipList, Intset, and Quicklist) such that those are only
+ * decoded when needed. This allows the caller to efficiently skip over these entries or defer their
+ * decoding to a worker thread.
  *
- * <p>RDB files created by all versions of Redis through 6.2.x are supported (i.e., RDB versions 1 through 9). Some features, however, are not supported:
+ * <p>RDB files created by all versions of Redis through 6.2.x are supported (i.e., RDB versions 1
+ * through 9). Some features, however, are not supported:
  *
  * <ul>
- *    <li>Modules, introduced in RDB version 8</li>
+ *   <li>Modules, introduced in RDB version 8</li>
  *   <li>Streams, introduced in RDB version 9.</li>
  * </ul>
  *
  * <p>If you need them, please open an issue or a pull request.
  *
- * <p>Implemenation is not thread safe.
+ * <p>Implementation is not thread safe.
  *
  * <p>As of June 2021, the most recent RDB format version is 9. The source of truth is the <a
  * href="https://github.com/antirez/redis/blob/unstable/src/rdb.h">rdb.h</a> file in the <a

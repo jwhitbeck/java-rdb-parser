@@ -34,12 +34,12 @@ final class IntSet extends LazyList<byte[]> {
   }
 
   private int getEncoding() {
-    // encoding can take three values: 2, 4, 8, stored as a little-endian 32 bit integer
+    // Encoding can take three values: 2, 4, or 8, stored as a little-endian 32 bit integer.
     return readIntAt(0);
   }
 
   private int getNumInts() {
-    // number of ints is stored as a little-endian 32 bit integer, stored right after the encoding
+    // Number of ints is stored as a little-endian 32 bit integer, stored right after the encoding.
     return readIntAt(4);
   }
 

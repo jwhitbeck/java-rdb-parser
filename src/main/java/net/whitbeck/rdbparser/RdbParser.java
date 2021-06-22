@@ -155,7 +155,7 @@ public final class RdbParser implements AutoCloseable {
 
   /**
    * <p>Returns the number of bytes parsed from the underlying file or stream by successive calls of
-   * the {@link readNext} method.
+   * the {@link #readNext} method.
    *
    * <p>As RdbParser uses a buffer internally, the returned value will be slightly smaller than the
    * total number of bytes buffered from the underlying file or stream.
