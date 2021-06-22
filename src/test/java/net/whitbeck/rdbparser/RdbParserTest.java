@@ -306,7 +306,7 @@ public class RdbParserTest {
         Assert.assertEquals(EntryType.RESIZE_DB, t.getType());
         resizeDb = (ResizeDb)t;
         Assert.assertEquals(1, resizeDb.getDbHashTableSize());
-        Assert.assertEquals(0, resizeDb.getExpiryHashTableSize());
+        Assert.assertEquals(0, resizeDb.getExpireTimeHashTableSize());
       }
       // foo:bar
       t = p.readNext();
@@ -326,7 +326,7 @@ public class RdbParserTest {
         Assert.assertEquals(EntryType.RESIZE_DB, t.getType());
         resizeDb = (ResizeDb)t;
         Assert.assertEquals(1, resizeDb.getDbHashTableSize());
-        Assert.assertEquals(0, resizeDb.getExpiryHashTableSize());
+        Assert.assertEquals(0, resizeDb.getExpireTimeHashTableSize());
       }
       // foo:baz
       t = p.readNext();
@@ -372,13 +372,11 @@ public class RdbParserTest {
         KeyValuePair kvp = (KeyValuePair)p.readNext();
         String k = str(kvp.getKey());
         if (k.equals("noexpiretime")) {
-          Assert.assertFalse(kvp.hasExpiry());
+          Assert.assertNull(kvp.getExpireTime());
         } else if (k.equals("seconds")) {
-          Assert.assertTrue(kvp.hasExpiry());
-          Assert.assertEquals(expireTimeSecs * 1000L, kvp.getExpiryMillis());
+          Assert.assertEquals(expireTimeSecs * 1000L, kvp.getExpireTime().longValue());
         } else if (k.equals("millis")) {
-          Assert.assertTrue(kvp.hasExpiry());
-          Assert.assertEquals(expireTimeMillis, kvp.getExpiryMillis());
+          Assert.assertEquals(expireTimeMillis, kvp.getExpireTime().longValue());
         }
       }
     }

@@ -82,25 +82,14 @@ public final class KeyValuePair implements Entry {
   }
 
   /**
-   * Returns true if this key/value pair has an expire time (either in seconds or milliseconds)
-   * associated with it, false otherwise.
-   *
-   * @return whether or not this object has an expire time.
-   */
-  public boolean hasExpiry() {
-    return expireTime != null;
-  }
-
-  /**
    * Returns the expire time in milliseconds. If the initial expire time was set in seconds in
-   * redis, the expire time is converted to milliseconds. Throws an IllegalStateException if no
-   * expire time is present.
+   * redis, the expire time is converted to milliseconds. Returns null if no expire time is set.
    *
    * @return the expire time in milliseconds.
    */
-  public long getExpiryMillis() {
-    if (expireTime == null ) {
-      throw new IllegalStateException("Entry does not have an expire time");
+  public Long getExpireTime() {
+    if (expireTime == null) {
+      return null;
     }
     switch (expireTime.length) {
       case 4:
@@ -154,9 +143,9 @@ public final class KeyValuePair implements Entry {
     sb.append(EntryType.KEY_VALUE_PAIR);
     sb.append(" (key: ");
     sb.append(StringUtils.getPrintableString(key));
-    if (hasExpiry()) {
+    if (expireTime != null) {
       sb.append(", expire time: ");
-      sb.append(getExpiryMillis());
+      sb.append(getExpireTime());
     }
     sb.append(", ");
     int len = getValues().size();

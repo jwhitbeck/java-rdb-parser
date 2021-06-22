@@ -55,7 +55,7 @@ public final class ResizeDb implements Entry {
    *
    * @return size of the expire time hash table.
    */
-  public long getExpiryHashTableSize() {
+  public long getExpireTimeHashTableSize() {
     return expireTimeHashTableSize;
   }
 

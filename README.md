@@ -114,8 +114,9 @@ public class RdbFilePrinter {
           System.out.println("Key value pair");
           KeyValuePair kvp = (KeyValuePair)e;
           System.out.println("Key: " + new String(kvp.getKey(), "ASCII"));
-          if (kvp.hasExpiry()) {
-            System.out.println("Expiry (ms): " + kvp.getExpiryMillis());
+          Long expireTime = kvp.getExpiretime();
+          if (expireTime != null) {
+            System.out.println("Expire time (ms): " + expireTime);
           }
           System.out.println("Value type: " + kvp.getValueType());
           System.out.print("Values: ");
@@ -149,7 +150,7 @@ Values: field1 val1 field2 val2
 ------------
 Key value pair
 Key: foo
-Expiry (ms): 1451518660934
+Expire time (ms): 1451518660934
 Value type: VALUE
 Values: bar
 ------------
