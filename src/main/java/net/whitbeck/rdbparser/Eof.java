@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2019 John Whitbeck. All rights reserved.
+ * Copyright (c) 2015-2021 John Whitbeck. All rights reserved.
  *
  * <p>The use and distribution terms for this software are covered by the
  * Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0.txt)
