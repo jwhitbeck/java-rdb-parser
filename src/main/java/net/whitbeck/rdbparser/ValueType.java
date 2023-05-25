@@ -67,6 +67,12 @@ public enum ValueType {
   SORTED_SET_AS_ZIPLIST,
 
   /**
+   * A compact encoding for small sorted sets in which value/score pairs are flattened and stored in
+   * a ZipList.
+   */
+  SORTED_SET_AS_LISTPACK,
+
+  /**
    * A compact encoding for small hashes in which key/value pairs are flattened and stored in a
    * ZipList.
    */
@@ -78,8 +84,23 @@ public enum ValueType {
   QUICKLIST,
 
   /**
+   * A linked list of listpacks to achieve good compression on lists of any length.
+   */
+  QUICKLIST2,
+
+  /**
    * Like SORTED_SET but encodes the scores as doubles using the IEEE 754 floating-point "double
    * format" bit layout on 8 bits instead of a string representation of the score.
    */
-  SORTED_SET2;
+  SORTED_SET2,
+
+  /**
+   * A compact encoding for small hashes. Replaces HASHMAP_AS_ZIPLIST as of RDB 10.
+   */
+  HASHMAP_AS_LISTPACK,
+
+  /**
+   * A compact encoding of elements. Replaces ZIPLIST in RDB 10.
+   */
+  LISTPACK;
 }

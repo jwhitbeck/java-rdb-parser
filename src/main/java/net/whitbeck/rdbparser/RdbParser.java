@@ -145,7 +145,7 @@ public final class RdbParser implements AutoCloseable {
       throw new IllegalStateException("Not a valid redis RDB file");
     }
     version = readVersion();
-    if (version < 1 || version > 9) {
+    if (version < 1 || version > 10) {
       throw new IllegalStateException("Unknown version");
     }
     nextEntry = new KeyValuePair();
@@ -419,11 +419,26 @@ public final class RdbParser implements AutoCloseable {
       case 14:
         readQuickList();
         break;
-      case 15: // Steam ListPacks
+      case 15: // Stream ListPacks
+      case 19: // Stream ListPacks_2
         throw new UnsupportedOperationException("Redis streams are not supported");
+      case 16:
+        readHashListPack();
+        break;
+      case 17:
+        readZSetListPack();
+        break;
+      case 18:
+        readQuickList2();
+        break;
       default:
         throw new UnsupportedOperationException("Unknown value type: " + valueType);
     }
+  }
+
+  private void readZSetListPack() throws IOException {
+    nextEntry.valueType = ValueType.SORTED_SET_AS_LISTPACK;
+    nextEntry.values = new SortedSetAsListpack(readStringEncoded());
   }
 
   private void readValue() throws IOException {
@@ -534,6 +549,23 @@ public final class RdbParser implements AutoCloseable {
     nextEntry.values = new ZipList(readStringEncoded());
   }
 
+  private void readHashListPack() throws IOException {
+    nextEntry.valueType = ValueType.HASHMAP_AS_LISTPACK;
+    nextEntry.values = new ListpackList(readStringEncoded());
+  }
+
+  private void readQuickList2() throws IOException {
+    int size = (int)readLength();
+    List<byte[]> listpacks = new ArrayList<byte[]>(size);
+    for (int i = 0; i < size; ++i) {
+      // Throw away container format
+      readLength();
+      listpacks.add(readStringEncoded());
+    }
+    nextEntry.valueType = ValueType.QUICKLIST2;
+    nextEntry.values = new QuickList2(listpacks);
+  }
+
   private void readQuickList() throws IOException {
     long len = readLength();
     if (len > Integer.MAX_VALUE) {
@@ -573,5 +605,4 @@ public final class RdbParser implements AutoCloseable {
   public static double parseSortedSet2Score(byte[] bytes) {
     return ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).getDouble();
   }
-
 }
