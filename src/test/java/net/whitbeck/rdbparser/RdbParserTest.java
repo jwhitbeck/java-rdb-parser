@@ -1,11 +1,10 @@
 /**
  * Copyright (c) 2015-2021 John Whitbeck. All rights reserved.
  *
- * The use and distribution terms for this software are covered by the
- * Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0.txt)
- * which can be found in the file al-v20.txt at the root of this distribution.
- * By using this software in any fashion, you are agreeing to be bound by
- * the terms of this license.
+ * The use and distribution terms for this software are covered by the Apache License 2.0
+ * (https://www.apache.org/licenses/LICENSE-2.0.txt) which can be found in the file al-v20.txt at
+ * the root of this distribution. By using this software in any fashion, you are agreeing to be
+ * bound by the terms of this license.
  *
  * You must not remove this notice, or any other, from this software.
  */
@@ -69,8 +68,7 @@ public class RdbParserTest {
       File configFile = new File(workDir, "src/configs/redis.conf");
       configFile.getParentFile().mkdirs();
       Files.write(configFile.toPath(), bytes("port " + port + "\n"));
-      proc = new ProcessBuilder()
-          .directory(workDir)
+      proc = new ProcessBuilder().directory(workDir)
           .command("src/redis-server", configFile.getCanonicalPath())
           .start();
     }
@@ -86,14 +84,14 @@ public class RdbParserTest {
     }
   }
 
-  static final RedisServerInstance[] instances = new RedisServerInstance[]{
-    new RedisServerInstance("2.4.18", 6),
-    new RedisServerInstance("2.8.24", 6),
-    new RedisServerInstance("3.2.11", 7),
-    new RedisServerInstance("4.0.6", 8),
-    new RedisServerInstance("5.0.6", 9),
-    new RedisServerInstance("6.2.1", 9)
-  };
+  static final RedisServerInstance[] instances = new RedisServerInstance[] {
+      new RedisServerInstance("2.8.24", 6),
+      new RedisServerInstance("3.2.11", 7),
+      new RedisServerInstance("4.0.6", 8),
+      new RedisServerInstance("5.0.14", 9),
+      new RedisServerInstance("6.2.1", 9),
+      new RedisServerInstance("7.0.11", 10)
+    };
 
   @BeforeClass
   public static void startClients() throws Exception {
@@ -122,7 +120,7 @@ public class RdbParserTest {
   public static Collection<Object[]> params() {
     List<Object[]> params = new ArrayList<Object[]>(instances.length);
     for (RedisServerInstance inst : instances) {
-      params.add(new Object[]{inst});
+      params.add(new Object[] {inst});
     }
     return params;
   }
@@ -189,10 +187,8 @@ public class RdbParserTest {
   }
 
   void setTestFile(ByteBuffer buf) throws IOException {
-    try (FileChannel ch = FileChannel.open(dumpFile.toPath(),
-                                           StandardOpenOption.WRITE,
-                                           StandardOpenOption.CREATE,
-                                           StandardOpenOption.TRUNCATE_EXISTING)) {
+    try (FileChannel ch = FileChannel.open(dumpFile.toPath(), StandardOpenOption.WRITE,
+        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ch.write(buf);
     }
   }
@@ -228,32 +224,35 @@ public class RdbParserTest {
         // AUX redis-ver = 3.2.0
         t = p.readNext();
         Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
-        aux = (AuxField)t;
+        aux = (AuxField) t;
         Assert.assertArrayEquals(bytes("redis-ver"), aux.getKey());
         Assert.assertArrayEquals(bytes(redisVersion), aux.getValue());
         // AUX redis-bits = 64
         t = p.readNext();
         Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
-        aux = (AuxField)t;
+        aux = (AuxField) t;
         Assert.assertArrayEquals(bytes("redis-bits"), aux.getKey());
         Assert.assertArrayEquals(bytes("64"), aux.getValue());
         // AUX ctime
         t = p.readNext();
         Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
-        aux = (AuxField)t;
+        aux = (AuxField) t;
         Assert.assertArrayEquals(bytes("ctime"), aux.getKey());
         // AUX used-mem = 821176
         t = p.readNext();
         Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
-        aux = (AuxField)t;
+        aux = (AuxField) t;
         Assert.assertArrayEquals(bytes("used-mem"), aux.getKey());
       }
       if (rdbVersion >= 8) {
-        // AUX aof-preamble = 0
+        String aofField = "aof-preamble";
+        if (rdbVersion >= 10) {
+          aofField = "aof-base";
+        }
         t = p.readNext();
         Assert.assertEquals(EntryType.AUX_FIELD, t.getType());
-        aux = (AuxField)t;
-        Assert.assertArrayEquals(bytes("aof-preamble"), aux.getKey());
+        aux = (AuxField) t;
+        Assert.assertArrayEquals(bytes(aofField), aux.getKey());
         Assert.assertArrayEquals(bytes("0"), aux.getValue());
       }
       // EOF
@@ -273,10 +272,11 @@ public class RdbParserTest {
         break;
       case 8:
       case 9:
+      case 10:
         numEntries = 5;
         break;
     }
-    for (int i=0; i<numEntries; i++) {
+    for (int i = 0; i < numEntries; i++) {
       p.readNext();
     }
   }
@@ -298,40 +298,40 @@ public class RdbParserTest {
       // DB SELECTOR 0
       t = p.readNext();
       Assert.assertEquals(EntryType.SELECT_DB, t.getType());
-      selectDb = (SelectDb)t;
+      selectDb = (SelectDb) t;
       Assert.assertEquals(0, selectDb.getId());
       if (rdbVersion >= 7) {
         // Resize DB
         t = p.readNext();
         Assert.assertEquals(EntryType.RESIZE_DB, t.getType());
-        resizeDb = (ResizeDb)t;
+        resizeDb = (ResizeDb) t;
         Assert.assertEquals(1, resizeDb.getDbHashTableSize());
         Assert.assertEquals(0, resizeDb.getExpireTimeHashTableSize());
       }
       // foo:bar
       t = p.readNext();
       Assert.assertEquals(EntryType.KEY_VALUE_PAIR, t.getType());
-      kvp = (KeyValuePair)t;
+      kvp = (KeyValuePair) t;
       Assert.assertEquals(ValueType.VALUE, kvp.getValueType());
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("baz", str(kvp.getValues().get(0)));
       // DB SELECTOR 1
       t = p.readNext();
       Assert.assertEquals(EntryType.SELECT_DB, t.getType());
-      selectDb = (SelectDb)t;
+      selectDb = (SelectDb) t;
       Assert.assertEquals(1, selectDb.getId());
       if (rdbVersion >= 7) {
         // Resize DB
         t = p.readNext();
         Assert.assertEquals(EntryType.RESIZE_DB, t.getType());
-        resizeDb = (ResizeDb)t;
+        resizeDb = (ResizeDb) t;
         Assert.assertEquals(1, resizeDb.getDbHashTableSize());
         Assert.assertEquals(0, resizeDb.getExpireTimeHashTableSize());
       }
       // foo:baz
       t = p.readNext();
       Assert.assertEquals(EntryType.KEY_VALUE_PAIR, t.getType());
-      kvp = (KeyValuePair)t;
+      kvp = (KeyValuePair) t;
       Assert.assertEquals(ValueType.VALUE, kvp.getValueType());
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("bar", str(kvp.getValues().get(0)));
@@ -368,8 +368,8 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      for (int i=0; i<n; ++i) {
-        KeyValuePair kvp = (KeyValuePair)p.readNext();
+      for (int i = 0; i < n; ++i) {
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
         String k = str(kvp.getKey());
         if (k.equals("noexpiretime")) {
           Assert.assertNull(kvp.getExpireTime());
@@ -390,39 +390,46 @@ public class RdbParserTest {
     long expireTime = 2000000000L;
     jedis.expireAt("key-with-expire-time", expireTime);
     jedis.lpush("list-key", "one", "two", "three");
-    jedis.set(new byte[]{0, 1, 2, 3}, bytes("val"));
+    jedis.set(new byte[] {0, 1, 2, 3}, bytes("val"));
     jedis.save();
     try (RdbParser p = openTestParser()) {
       if (rdbVersion >= 7) {
         // AUX entries
-        Assert.assertEquals("AUX_FIELD (k: redis-ver, v: " + redisVersion + ")", p.readNext().toString());
+        Assert.assertEquals("AUX_FIELD (k: redis-ver, v: " + redisVersion + ")",
+            p.readNext().toString());
         Assert.assertEquals("AUX_FIELD (k: redis-bits, v: 64)", p.readNext().toString());
-        Assert.assertTrue(Pattern.matches("AUX_FIELD \\(k: ctime, v: \\d{10}\\)", p.readNext().toString()));
-        Assert.assertTrue(Pattern.matches("AUX_FIELD \\(k: used-mem, v: \\d+\\)", p.readNext().toString()));
+        Assert.assertTrue(
+            Pattern.matches("AUX_FIELD \\(k: ctime, v: \\d{10}\\)", p.readNext().toString()));
+        Assert.assertTrue(
+            Pattern.matches("AUX_FIELD \\(k: used-mem, v: \\d+\\)", p.readNext().toString()));
       }
       if (rdbVersion >= 8) {
         // more AUX fields
-        Assert.assertEquals("AUX_FIELD (k: aof-preamble, v: 0)", p.readNext().toString());
+        String aofField = "aof-preamble";
+        if (rdbVersion >= 10) {
+          aofField = "aof-base";
+        }
+        Assert.assertEquals("AUX_FIELD (k: " + aofField + ", v: 0)", p.readNext().toString());
       }
       // DB 0
       Assert.assertEquals("SELECT_DB (0)", p.readNext().toString());
       if (rdbVersion >= 7) {
         Assert.assertEquals("RESIZE_DB (db hash table size: 4, expire time hash table size: 1)",
-                            p.readNext().toString());
+            p.readNext().toString());
       }
-      for (int i=0; i<4; ++i) {
-        KeyValuePair kvp = (KeyValuePair)p.readNext();
+      for (int i = 0; i < 4; ++i) {
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
         byte[] k = kvp.getKey();
         if (Arrays.equals(k, bytes("simple-key"))) {
           Assert.assertEquals("KEY_VALUE_PAIR (key: simple-key, 1 value)", kvp.toString());
         } else if (Arrays.equals(k, bytes("key-with-expire-time"))) {
           Assert.assertEquals("KEY_VALUE_PAIR (key: key-with-expire-time, expire time: "
-                              + expireTime * 1000 + ", 1 value)",
-                              kvp.toString());
+              + expireTime * 1000 + ", 1 value)", kvp.toString());
         } else if (Arrays.equals(bytes("list-key"), k)) {
           Assert.assertEquals("KEY_VALUE_PAIR (key: list-key, 3 values)", kvp.toString());
-        } else if (Arrays.equals(k, new byte[]{0, 1, 2, 3})) {
-          Assert.assertEquals("KEY_VALUE_PAIR (key: \\x00\\x01\\x02\\x03, 1 value)", kvp.toString());
+        } else if (Arrays.equals(k, new byte[] {0, 1, 2, 3})) {
+          Assert.assertEquals("KEY_VALUE_PAIR (key: \\x00\\x01\\x02\\x03, 1 value)",
+              kvp.toString());
         }
       }
       Assert.assertTrue(Pattern.matches("EOF \\([\\da-f]{16}\\)", p.readNext().toString()));
@@ -431,14 +438,14 @@ public class RdbParserTest {
 
   @Test
   public void binaryKeyAndValues() throws Exception {
-    byte[] key = new byte[]{0, 1, 2, 3};
-    byte[] val = new byte[]{4, 5, 6};
+    byte[] key = new byte[] {0, 1, 2, 3};
+    byte[] val = new byte[] {4, 5, 6};
     jedis.flushAll();
     jedis.set(key, val);
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertArrayEquals(key, kvp.getKey());
       Assert.assertArrayEquals(val, kvp.getValues().get(0));
     }
@@ -452,7 +459,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("12", str(kvp.getValues().get(0)));
     }
@@ -466,7 +473,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("-12", str(kvp.getValues().get(0)));
     }
@@ -480,7 +487,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("1234", str(kvp.getValues().get(0)));
     }
@@ -494,7 +501,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("-1234", str(kvp.getValues().get(0)));
     }
@@ -508,7 +515,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("123456789", str(kvp.getValues().get(0)));
     }
@@ -522,7 +529,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
       Assert.assertEquals("-123456789", str(kvp.getValues().get(0)));
     }
@@ -536,31 +543,38 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals("foo", str(kvp.getKey()));
-      Assert.assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                          str(kvp.getValues().get(0)));
+      Assert.assertEquals(
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          str(kvp.getValues().get(0)));
     }
   }
 
   @Test
   public void list() throws Exception {
     jedis.flushAll();
-    if (rdbVersion >= 7) {
+    if (rdbVersion >= 10) {
+      jedis.configSet("list-max-listpack-size", "0");
+    } else if (rdbVersion >= 7) {
       jedis.configSet("list-max-ziplist-size", "0");
     }
     jedis.lpush("foo", "bar", "1234", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     jedis.save();
-    if (rdbVersion >= 7) {
+    if (rdbVersion >= 10) {
+      jedis.configSet("list-max-listpack-size", "1000");
+    } else if (rdbVersion >= 7) {
       jedis.configSet("list-max-ziplist-size", "1000");
     }
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       if (rdbVersion < 7) {
         Assert.assertEquals(ValueType.ZIPLIST, kvp.getValueType());
-      } else {
+      } else if (rdbVersion < 10) {
         Assert.assertEquals(ValueType.QUICKLIST, kvp.getValueType());
+      } else {
+        Assert.assertEquals(ValueType.QUICKLIST2, kvp.getValueType());
       }
       List<byte[]> list = kvp.getValues();
       Assert.assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", str(list.get(0)));
@@ -580,7 +594,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals(ValueType.SET, kvp.getValueType());
       Set<String> parsedSet = new HashSet<String>();
       for (byte[] elem : kvp.getValues()) {
@@ -607,10 +621,10 @@ public class RdbParserTest {
       jedis.configSet("zset-max-ziplist-entries", origValue);
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
-        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
         Assert.assertEquals(ValueType.SORTED_SET, kvp.getValueType());
         Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
-        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
           parsedValueScoreMap.put(str(i.next()), RdbParser.parseSortedSetScore(i.next()));
         }
         Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
@@ -635,10 +649,10 @@ public class RdbParserTest {
       jedis.configSet("zset-max-ziplist-entries", origValue);
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
-        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
         Assert.assertEquals(ValueType.SORTED_SET2, kvp.getValueType());
         Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
-        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
           parsedValueScoreMap.put(str(i.next()), RdbParser.parseSortedSet2Score(i.next()));
         }
         Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
@@ -648,8 +662,8 @@ public class RdbParserTest {
 
   @Test
   public void hash() throws Exception {
-    String maxEntriesKey =
-        isEarlierThan(redisVersion, "2.6.0")? "hash-max-zipmap-entries" : "hash-max-ziplist-entries";
+    String maxEntriesKey = isEarlierThan(redisVersion, "2.6.0") ? "hash-max-zipmap-entries"
+        : "hash-max-ziplist-entries";
     String origMaxEntriesValue = jedis.configGet(maxEntriesKey).get(1);
     jedis.configSet(maxEntriesKey, "0");
     Map<String, String> map = new HashMap<String, String>();
@@ -664,10 +678,10 @@ public class RdbParserTest {
     jedis.configSet(maxEntriesKey, origMaxEntriesValue);
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals(ValueType.HASH, kvp.getValueType());
-      Map<String,String> parsedMap = new HashMap<String,String>();
-      for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
+      Map<String, String> parsedMap = new HashMap<String, String>();
+      for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
         parsedMap.put(str(i.next()), str(i.next()));
       }
       Assert.assertEquals(map, parsedMap);
@@ -678,18 +692,18 @@ public class RdbParserTest {
   public void quickList() throws Exception {
     if (rdbVersion >= 7) {
       List<String> list = Arrays.asList("loremipsum", // string
-                                        "10", // 4 bit integer
-                                        "30", // 8 bit integer
-                                        "-30", // 8 bit signed integer
-                                        "1000", // 16 bit integer
-                                        "-1000", // 16 bit signed integer
-                                        "300000", // 24 bit integer
-                                        "-300000", // 24 bit signed integer
-                                        "30000000", // 32 bit integer
-                                        "-30000000", // 32 bit signed integer
-                                        "9000000000", // 64 bit integer
-                                        "-9000000000" // 64 bit signed integer
-        );
+          "10", // 4 bit integer
+          "30", // 8 bit integer
+          "-30", // 8 bit signed integer
+          "1000", // 16 bit integer
+          "-1000", // 16 bit signed integer
+          "300000", // 24 bit integer
+          "-300000", // 24 bit signed integer
+          "30000000", // 32 bit integer
+          "-30000000", // 32 bit signed integer
+          "9000000000", // 64 bit integer
+          "-9000000000" // 64 bit signed integer
+      );
       jedis.flushAll();
       for (String s : list) {
         jedis.lpush("foo", s);
@@ -697,8 +711,12 @@ public class RdbParserTest {
       jedis.save();
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
-        KeyValuePair kvp = (KeyValuePair)p.readNext();
-        Assert.assertEquals(ValueType.QUICKLIST, kvp.getValueType());
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
+        if (rdbVersion >= 10) {
+          Assert.assertEquals(ValueType.QUICKLIST2, kvp.getValueType());
+        } else {
+          Assert.assertEquals(ValueType.QUICKLIST, kvp.getValueType());
+        }
         List<String> parsedList = new ArrayList<String>();
         for (byte[] val : kvp.getValues()) {
           parsedList.add(str(val));
@@ -720,7 +738,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals(ValueType.INTSET, kvp.getValueType());
       Set<String> parsedInts = new HashSet<String>();
       for (byte[] bs : kvp.getValues()) {
@@ -741,7 +759,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals(ValueType.INTSET, kvp.getValueType());
       Set<String> parsedInts = new HashSet<String>();
       for (byte[] bs : kvp.getValues()) {
@@ -762,7 +780,7 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
       Assert.assertEquals(ValueType.INTSET, kvp.getValueType());
       Set<String> parsedInts = new HashSet<String>();
       for (byte[] bs : kvp.getValues()) {
@@ -772,8 +790,7 @@ public class RdbParserTest {
     }
   }
 
-  @Test
-  public void sortedSetAsZipList() throws Exception {
+  private void checkCompactedSortedSet(ValueType expectedType) throws Exception {
     Map<String, Double> valueScoreMap = new HashMap<String, Double>();
     valueScoreMap.put("foo", 1.45);
     valueScoreMap.put("bar", Double.POSITIVE_INFINITY);
@@ -785,10 +802,10 @@ public class RdbParserTest {
     jedis.save();
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
-      KeyValuePair kvp = (KeyValuePair)p.readNext();
-      Assert.assertEquals(ValueType.SORTED_SET_AS_ZIPLIST, kvp.getValueType());
+      KeyValuePair kvp = (KeyValuePair) p.readNext();
+      Assert.assertEquals(expectedType, kvp.getValueType());
       Map<String, Double> parsedValueScoreMap = new HashMap<String, Double>();
-      for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ){
+      for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
         parsedValueScoreMap.put(str(i.next()), RdbParser.parseSortedSetScore(i.next()));
       }
       Assert.assertEquals(valueScoreMap, parsedValueScoreMap);
@@ -796,14 +813,28 @@ public class RdbParserTest {
   }
 
   @Test
+  public void sortedSetAsZipList() throws Exception {
+    if (rdbVersion <= 9) {
+      checkCompactedSortedSet(ValueType.SORTED_SET_AS_ZIPLIST);
+    }
+  }
+
+  @Test
+  public void sortedSetAsListpack() throws Exception {
+    if (rdbVersion >= 10) {
+      checkCompactedSortedSet(ValueType.SORTED_SET_AS_LISTPACK);
+    }
+  }
+
+  @Test
   public void hashmapAsZipList() throws Exception {
-    if (isLaterThan(redisVersion, "2.6.0")) {
+    if (isLaterThan(redisVersion, "2.6.0") && rdbVersion <= 9) {
       StringBuffer sb = new StringBuffer(16384);
-      for (int i=0; i<64; ++i) {
+      for (int i = 0; i < 64; ++i) {
         sb.append("x");
       }
       String mediumString = sb.toString();
-      for (int i=0; i<256; ++i) {
+      for (int i = 0; i < 256; ++i) {
         sb.append(mediumString);
       }
       String longString = sb.toString();
@@ -821,10 +852,60 @@ public class RdbParserTest {
       jedis.save();
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
-        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
         Assert.assertEquals(ValueType.HASHMAP_AS_ZIPLIST, kvp.getValueType());
-        Map<String,String> parsedMap = new HashMap<String,String>();
-        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
+        Map<String, String> parsedMap = new HashMap<String, String>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
+          parsedMap.put(str(i.next()), str(i.next()));
+        }
+        Assert.assertEquals(map, parsedMap);
+      }
+    }
+  }
+
+  @Test
+  public void hashmapAsListpack() throws Exception {
+    if (rdbVersion >= 10) {
+      StringBuffer sb = new StringBuffer(16384);
+      for (int i = 0; i < 64; ++i) {
+        sb.append("x");
+      }
+      String mediumString = sb.toString();
+      for (int i = 0; i < 256; ++i) {
+        sb.append(mediumString);
+      }
+      String longString = sb.toString();
+      List<String> list = Arrays.asList("30", // 7 bit integer
+          "500", // 13 bit signed integer
+          "-30", // 13 bit signed integer
+          "16000", // 16 bit integer
+          "-16000", // 16 bit signed integer
+          "300000", // 24 bit integer
+          "-300000", // 24 bit signed integer
+          "30000000", // 32 bit integer
+          "-30000000", // 32 bit signed integer
+          "9000000000", // 64 bit integer
+          "-9000000000", // 64 bit signed integer
+          "loremipsum", // 6 bit string
+          mediumString, // 12 bit string
+          longString // 32 bit string
+      );
+      Map<String, String> map = new HashMap<String, String>();
+      for (int i = 0; i < list.size(); ++i) {
+        map.put(Integer.toString(i), list.get(i));
+      }
+      jedis.configSet("hash-max-listpack-value", Integer.toString(longString.length()));
+      jedis.flushAll();
+      for (Map.Entry<String, String> e : map.entrySet()) {
+        jedis.hset("foo", e.getKey(), e.getValue());
+      }
+      jedis.save();
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
+        Assert.assertEquals(ValueType.HASHMAP_AS_LISTPACK, kvp.getValueType());
+        Map<String, String> parsedMap = new HashMap<String, String>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
           parsedMap.put(str(i.next()), str(i.next()));
         }
         Assert.assertEquals(map, parsedMap);
@@ -846,10 +927,10 @@ public class RdbParserTest {
       jedis.save();
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
-        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
         Assert.assertEquals(ValueType.ZIPMAP, kvp.getValueType());
-        Map<String,String> parsedMap = new HashMap<String,String>();
-        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext(); ) {
+        Map<String, String> parsedMap = new HashMap<String, String>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
           parsedMap.put(str(i.next()), str(i.next()));
         }
         Assert.assertEquals(map, parsedMap);
@@ -859,17 +940,17 @@ public class RdbParserTest {
 
   @Test
   public void memoryPolicyLRU() throws Exception {
-    if(rdbVersion >= 9) {
+    if (rdbVersion >= 9) {
       jedis.flushAll();
       jedis.configSet("maxmemory-policy", "allkeys-lru");
       jedis.set("foo", "bar");
       jedis.save();
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
-        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
         Assert.assertEquals("foo", str(kvp.getKey()));
         Assert.assertEquals("bar", str(kvp.getValues().get(0)));
-        Assert.assertEquals(0L, (long)kvp.getIdle());
+        Assert.assertEquals(0L, (long) kvp.getIdle());
       }
       jedis.configSet("maxmemory-policy", "noeviction");
     }
@@ -877,20 +958,19 @@ public class RdbParserTest {
 
   @Test
   public void memoryPolicyLFU() throws Exception {
-    if(rdbVersion >= 9) {
+    if (rdbVersion >= 9) {
       jedis.flushAll();
       jedis.configSet("maxmemory-policy", "allkeys-lfu");
       jedis.set("foo", "bar");
       jedis.save();
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
-        KeyValuePair kvp = (KeyValuePair)p.readNext();
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
         Assert.assertEquals("foo", str(kvp.getKey()));
         Assert.assertEquals("bar", str(kvp.getValues().get(0)));
-        Assert.assertEquals(5L, (long)kvp.getFreq());
+        Assert.assertEquals(5L, (long) kvp.getFreq());
       }
       jedis.configSet("maxmemory-policy", "noeviction");
     }
   }
-
 }

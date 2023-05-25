@@ -4,15 +4,15 @@
 [submodule "redis/2.8.24"]
         path = redis/2.8.24
         url = https://github.com/antirez/redis.git
-[submodule "redis/2.4.18"]
-        path = redis/2.4.18
-        url = https://github.com/antirez/redis.git
 [submodule "redis/4.0.6"]
         path = redis/4.0.6
         url = https://github.com/antirez/redis.git
-[submodule "redis/5.0.6"]
-	path = redis/5.0.6
-	url = https://github.com/antirez/redis.git
+[submodule "redis/5.0.14"]
+	path = redis/5.0.14
+	url = https://github.com/redis/redis.git
 [submodule "redis/6.2.1"]
 	path = redis/6.2.1
+	url = https://github.com/redis/redis.git
+[submodule "redis/7.0.11"]
+	path = redis/7.0.11
 	url = https://github.com/redis/redis.git

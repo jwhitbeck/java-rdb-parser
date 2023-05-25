@@ -18,13 +18,13 @@ pairs and key/value pairs, respectively. Simple Redis values are parsed as a
 singleton. As expected, Redis lists and sets are parsed as lists of values.
 
 Furthermore, this library performs lazy decoding of the packed encodings
-(ZipMap, ZipList, Hashmap as ZipList, Sorted Set as ZipList, Intset, and
-QuickList) such that those are only decoded when needed. This allows the caller
-to efficiently skip over these entries or defer their decoding to a worker
-thread.
+(ZipMap, ZipList, Hashmap as ZipList, Sorted Set as ZipList, Intset, QuickList,
+and ListPack) such that those are only decoded when needed. This allows the
+caller to efficiently skip over these entries or defer their decoding to a
+worker thread.
 
-RDB files created by all versions of Redis through 6.2.x are supported (i.e.,
-RDB versions 1 through 9). Some features, however, are not supported:
+RDB files created by all versions of Redis through 7.0.x are supported (i.e.,
+RDB versions 1 through 10). Some features, however, are not supported:
 
 - [Modules](https://redis.io/modules), introduced in RDB version 8
 - [Streams](https://redis.io/topics/streams-intro), introduced in RDB version 9.
@@ -160,7 +160,7 @@ End of file. Checksum: 157e40ad49ef13f6
 
 ## References
 
-As of June 2021, the most recent RDB format version is 9. The source of truth
+As of July 2023, the most recent RDB format version is 10. The source of truth
 is the [rdb.h][] file in the [Redis repo][]. The following resources provide a
 good overview of the RDB format.
 
@@ -168,5 +168,5 @@ good overview of the RDB format.
 - [RDB file format (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format)
 - [RDB version history (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/blob/master/docs/RDB_Version_History.textile)
 
-[rdb.h]: https://github.com/antirez/redis/blob/unstable/src/rdb.h
-[Redis repo]: https://github.com/antirez/redis
+[rdb.h]: https://github.com/redis/redis/blob/unstable/src/rdb.h
+[Redis repo]: https://github.com/redis/redis
