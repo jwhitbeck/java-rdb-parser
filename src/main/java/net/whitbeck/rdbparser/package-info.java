@@ -28,8 +28,8 @@
  * decoded when needed. This allows the caller to efficiently skip over these entries or defer their
  * decoding to a worker thread.
  *
- * <p>RDB files created by all versions of Redis through 6.2.x are supported (i.e., RDB versions 1
- * through 9). Some features, however, are not supported:
+ * <p>RDB files created by all versions of Redis through 7.0.x are supported (i.e., RDB versions 1
+ * through 10). Some features, however, are not supported:
  *
  * <ul>
  *   <li>Modules, introduced in RDB version 8</li>
@@ -40,9 +40,9 @@
  *
  * <p>Implementation is not thread safe.
  *
- * <p>As of June 2021, the most recent RDB format version is 9. The source of truth is the <a
- * href="https://github.com/antirez/redis/blob/unstable/src/rdb.h">rdb.h</a> file in the <a
- * href="https://github.com/antirez/redis">Redis repo</a>. The following resources provide a good
+ * <p>As of July 2023, the most recent RDB format version is 10. The source of truth is the <a
+ * href="https://github.com/redis/redis/blob/unstable/src/rdb.h">rdb.h</a> file in the <a
+ * href="https://github.com/redis/redis">Redis repo</a>. The following resources provide a good
  * overview of the RDB format.
  *
  * <ul>
