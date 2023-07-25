@@ -62,5 +62,5 @@
  *     </a>
  *   </li>
  * </ul>
-*/
+ */
 package net.whitbeck.rdbparser;

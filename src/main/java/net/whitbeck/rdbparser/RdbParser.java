@@ -318,16 +318,16 @@ public final class RdbParser implements AutoCloseable {
 
   private byte[] readInteger16Bits() throws IOException {
     long val = ((long)readByte() & 0xff) << 0
-             |  (long)readSignedByte()   << 8; // Don't apply 0xff mask to preserve sign.
+        |  (long)readSignedByte()   << 8; // Don't apply 0xff mask to preserve sign.
     return String.valueOf(val).getBytes(ASCII);
   }
 
   private byte[] readInteger32Bits() throws IOException {
     byte[] bs = readBytes(4);
     long val =  (long)bs[3]         << 24 // Don't apply 0xff mask to preserve sign.
-             | ((long)bs[2] & 0xff) << 16
-             | ((long)bs[1] & 0xff) <<  8
-             | ((long)bs[0] & 0xff) <<  0;
+        | ((long)bs[2] & 0xff) << 16
+        | ((long)bs[1] & 0xff) <<  8
+        | ((long)bs[0] & 0xff) <<  0;
     return String.valueOf(val).getBytes(ASCII);
   }
 

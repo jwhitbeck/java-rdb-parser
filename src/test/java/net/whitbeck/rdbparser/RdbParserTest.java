@@ -85,13 +85,13 @@ public class RdbParserTest {
   }
 
   static final RedisServerInstance[] instances = new RedisServerInstance[] {
-      new RedisServerInstance("2.8.24", 6),
-      new RedisServerInstance("3.2.11", 7),
-      new RedisServerInstance("4.0.6", 8),
-      new RedisServerInstance("5.0.14", 9),
-      new RedisServerInstance("6.2.1", 9),
-      new RedisServerInstance("7.0.11", 10)
-    };
+    new RedisServerInstance("2.8.24", 6),
+    new RedisServerInstance("3.2.11", 7),
+    new RedisServerInstance("4.0.6", 8),
+    new RedisServerInstance("5.0.14", 9),
+    new RedisServerInstance("6.2.1", 9),
+    new RedisServerInstance("7.0.11", 10)
+  };
 
   @BeforeClass
   public static void startClients() throws Exception {
@@ -188,7 +188,7 @@ public class RdbParserTest {
 
   void setTestFile(ByteBuffer buf) throws IOException {
     try (FileChannel ch = FileChannel.open(dumpFile.toPath(), StandardOpenOption.WRITE,
-        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                                           StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
       ch.write(buf);
     }
   }
@@ -396,7 +396,7 @@ public class RdbParserTest {
       if (rdbVersion >= 7) {
         // AUX entries
         Assert.assertEquals("AUX_FIELD (k: redis-ver, v: " + redisVersion + ")",
-            p.readNext().toString());
+                            p.readNext().toString());
         Assert.assertEquals("AUX_FIELD (k: redis-bits, v: 64)", p.readNext().toString());
         Assert.assertTrue(
             Pattern.matches("AUX_FIELD \\(k: ctime, v: \\d{10}\\)", p.readNext().toString()));
@@ -415,7 +415,7 @@ public class RdbParserTest {
       Assert.assertEquals("SELECT_DB (0)", p.readNext().toString());
       if (rdbVersion >= 7) {
         Assert.assertEquals("RESIZE_DB (db hash table size: 4, expire time hash table size: 1)",
-            p.readNext().toString());
+                            p.readNext().toString());
       }
       for (int i = 0; i < 4; ++i) {
         KeyValuePair kvp = (KeyValuePair) p.readNext();
@@ -424,12 +424,12 @@ public class RdbParserTest {
           Assert.assertEquals("KEY_VALUE_PAIR (key: simple-key, 1 value)", kvp.toString());
         } else if (Arrays.equals(k, bytes("key-with-expire-time"))) {
           Assert.assertEquals("KEY_VALUE_PAIR (key: key-with-expire-time, expire time: "
-              + expireTime * 1000 + ", 1 value)", kvp.toString());
+                              + expireTime * 1000 + ", 1 value)", kvp.toString());
         } else if (Arrays.equals(bytes("list-key"), k)) {
           Assert.assertEquals("KEY_VALUE_PAIR (key: list-key, 3 values)", kvp.toString());
         } else if (Arrays.equals(k, new byte[] {0, 1, 2, 3})) {
           Assert.assertEquals("KEY_VALUE_PAIR (key: \\x00\\x01\\x02\\x03, 1 value)",
-              kvp.toString());
+                              kvp.toString());
         }
       }
       Assert.assertTrue(Pattern.matches("EOF \\([\\da-f]{16}\\)", p.readNext().toString()));
@@ -692,18 +692,18 @@ public class RdbParserTest {
   public void quickList() throws Exception {
     if (rdbVersion >= 7) {
       List<String> list = Arrays.asList("loremipsum", // string
-          "10", // 4 bit integer
-          "30", // 8 bit integer
-          "-30", // 8 bit signed integer
-          "1000", // 16 bit integer
-          "-1000", // 16 bit signed integer
-          "300000", // 24 bit integer
-          "-300000", // 24 bit signed integer
-          "30000000", // 32 bit integer
-          "-30000000", // 32 bit signed integer
-          "9000000000", // 64 bit integer
-          "-9000000000" // 64 bit signed integer
-      );
+                                        "10", // 4 bit integer
+                                        "30", // 8 bit integer
+                                        "-30", // 8 bit signed integer
+                                        "1000", // 16 bit integer
+                                        "-1000", // 16 bit signed integer
+                                        "300000", // 24 bit integer
+                                        "-300000", // 24 bit signed integer
+                                        "30000000", // 32 bit integer
+                                        "-30000000", // 32 bit signed integer
+                                        "9000000000", // 64 bit integer
+                                        "-9000000000" // 64 bit signed integer
+        );
       jedis.flushAll();
       for (String s : list) {
         jedis.lpush("foo", s);
@@ -876,20 +876,20 @@ public class RdbParserTest {
       }
       String longString = sb.toString();
       List<String> list = Arrays.asList("30", // 7 bit integer
-          "500", // 13 bit signed integer
-          "-30", // 13 bit signed integer
-          "16000", // 16 bit integer
-          "-16000", // 16 bit signed integer
-          "300000", // 24 bit integer
-          "-300000", // 24 bit signed integer
-          "30000000", // 32 bit integer
-          "-30000000", // 32 bit signed integer
-          "9000000000", // 64 bit integer
-          "-9000000000", // 64 bit signed integer
-          "loremipsum", // 6 bit string
-          mediumString, // 12 bit string
-          longString // 32 bit string
-      );
+                                        "500", // 13 bit signed integer
+                                        "-30", // 13 bit signed integer
+                                        "16000", // 16 bit integer
+                                        "-16000", // 16 bit signed integer
+                                        "300000", // 24 bit integer
+                                        "-300000", // 24 bit signed integer
+                                        "30000000", // 32 bit integer
+                                        "-30000000", // 32 bit signed integer
+                                        "9000000000", // 64 bit integer
+                                        "-9000000000", // 64 bit signed integer
+                                        "loremipsum", // 6 bit string
+                                        mediumString, // 12 bit string
+                                        longString // 32 bit string
+        );
       Map<String, String> map = new HashMap<String, String>();
       for (int i = 0; i < list.size(); ++i) {
         map.put(Integer.toString(i), list.get(i));
