@@ -52,11 +52,14 @@ class ListpackList extends LazyList<byte[]> {
         strLen = b & ~LP_ENCODING_6BIT_STR_MASK;
       } else if ((b & LP_ENCODING_12BIT_STR_MASK) == LP_ENCODING_12BIT_STR) {
         // 1110|xxxxx yyyyyyyy str len up to 4095.
-        strLen = (b & ~LP_ENCODING_12BIT_STR_MASK) << 8 | envelope[pos++];
+        strLen = ((int)envelope[pos++] & 0xff)
+            |     (b & 0xff & ~LP_ENCODING_12BIT_STR_MASK) << 8;
       } else if ((b & LP_ENCODING_32BIT_STR_MASK) == LP_ENCODING_32BIT_STR) {
         // 1100|0000 subencoding.
-        strLen = envelope[pos++] | envelope[pos++] << 8 | envelope[pos++] << 16
-            | envelope[pos++] << 24;
+        strLen = ((int)envelope[pos++] & 0xff) <<  0
+            |    ((int)envelope[pos++] & 0xff) <<  8
+            |    ((int)envelope[pos++] & 0xff) << 16
+            |     (int)envelope[pos++]         << 24;
       }
 
       if (strLen > 0) {
