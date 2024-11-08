@@ -28,8 +28,8 @@
  * decoded when needed. This allows the caller to efficiently skip over these entries or defer their
  * decoding to a worker thread.
  *
- * <p>RDB files created by all versions of Redis through 7.0.x are supported (i.e., RDB versions 1
- * through 10). Some features, however, are not supported:
+ * <p>RDB files created by all versions of Redis through 7.4.x are supported (i.e., RDB versions 1
+ * through 12). Some features, however, are not supported:
  *
  * <ul>
  *   <li>Modules, introduced in RDB version 8</li>
@@ -38,9 +38,11 @@
  *
  * <p>If you need them, please open an issue or a pull request.
  *
+ * <p>Valkey uses the same RDB format as of 8.0.x, and this library can read those as well.
+ *
  * <p>Implementation is not thread safe.
  *
- * <p>As of July 2023, the most recent RDB format version is 10. The source of truth is the <a
+ * <p>As of November 2024, the most recent RDB format version is 12. The source of truth is the <a
  * href="https://github.com/redis/redis/blob/unstable/src/rdb.h">rdb.h</a> file in the <a
  * href="https://github.com/redis/redis">Redis repo</a>. The following resources provide a good
  * overview of the RDB format.

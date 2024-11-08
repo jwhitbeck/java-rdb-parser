@@ -23,13 +23,16 @@ and ListPack) such that those are only decoded when needed. This allows the
 caller to efficiently skip over these entries or defer their decoding to a
 worker thread.
 
-RDB files created by all versions of Redis through 7.0.x are supported (i.e.,
-RDB versions 1 through 10). Some features, however, are not supported:
+RDB files created by all versions of Redis through 7.4.x are supported (i.e.,
+RDB versions 1 through 12). Some features, however, are not supported:
 
 - [Modules](https://redis.io/modules), introduced in RDB version 8
 - [Streams](https://redis.io/topics/streams-intro), introduced in RDB version 9.
 
 If you need these, please open an issue or a pull request.
+
+[Valkey](https://valkey.io/), an open source fork of Redis 7.2, uses the same
+RDB format as of 8.0.x, and this library can read those as well.
 
 To use this library, including the following dependency in your `pom.xml`.
 
@@ -160,9 +163,9 @@ End of file. Checksum: 157e40ad49ef13f6
 
 ## References
 
-As of July 2023, the most recent RDB format version is 10. The source of truth
-is the [rdb.h][] file in the [Redis repo][]. The following resources provide a
-good overview of the RDB format.
+As of November 2024, the most recent RDB format version is 12. The source of
+truth is the [rdb.h][] file in the [Redis repo][]. The following resources
+provide a good overview of the RDB format.
 
 - [RDB file format](http://rdb.fnordig.de/file_format.html) (up to version 7).
 - [RDB file format (redis-rdb-tools)](https://github.com/sripathikrishnan/redis-rdb-tools/wiki/Redis-RDB-Dump-File-Format)
