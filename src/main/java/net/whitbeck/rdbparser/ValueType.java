@@ -107,5 +107,31 @@ public enum ValueType {
   /**
    * A compact encoding for small sets.
    */
-  SET_AS_LISTPACK;
+  SET_AS_LISTPACK,
+
+  /**
+   * A redis hash with expiration time on each hash key. Hash keys are stored
+   * as a series of key, value, ttl tuples.
+   */
+  HASHMAP_WITH_METADATA,
+
+  /**
+   * As HASHMAP_WITH_METADATA, but the pre-GA encoding stored the hash
+   * expiration as actual times while the GA version stores the hash expiration
+   * as an offset from the next key expiration.
+   */
+  HASHMAP_WITH_METADATA_PRE_GA,
+
+  /**
+   * A compact encoding for small hashes with expiration time on each hash key.
+   * Values are stored as a listpack with key, value, ttl tuples.
+   */
+  HASHMAP_AS_LISTPACK_EX,
+
+  /**
+   * As HASHMAP_AS_LISTPACK_EX, but the pre-GA encoding stored the hash
+   * expiration as actual times while the GA version stores the hash expiration
+   * as an offset from the key expiration.
+   */
+  HASHMAP_AS_LISTPACK_EX_PRE_GA;
 }

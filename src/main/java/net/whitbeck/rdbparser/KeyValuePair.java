@@ -23,8 +23,9 @@ import java.util.List;
  *  <li>the key itself;</li>
  *  <li>the values associated with the key;</li>
  *  <li>the expire time (optional);</li>
- *  <li>the LFU frequency (optional); and<li>
- *  <li>the LRU idle time (optional).
+ *  <li>the LFU frequency (optional);</li>
+ *  <li>the LRU idle time (optional); and</li>
+ *  <li>the minimum expire time (for hashes with expiration metadata).</li>
  * </ul>
  *
  * @author John Whitbeck
@@ -37,6 +38,7 @@ public final class KeyValuePair implements Entry {
   byte[] expireTime;
   Long idle;
   Integer freq;
+  Long minHashExpireTime;
 
   /**
    * Returns the key associated with this key/value pair.
@@ -73,6 +75,8 @@ public final class KeyValuePair implements Entry {
    *  <li>SORTED_SET, SORTED_SET_AS_ZIPLIST, SORTED_SET2: a flattened list of key/score pairs;
    *      the scores can be parsed using {@link RdbParser#parseSortedSetScore} (SORTED_SET and
    *       SORTED_SET_AS_ZIPLIST) or {@link RdbParser#parseSortedSet2Score} (SORTED_SET2)}.</li>
+   *  <li>HASHMAP_WITH_METADATA, HASHMAP_AS_LISTPACK_EX (and the pre-GA versions):
+   *      a flattened list of key/value/expiration triplets.</li>
    * </ul>
    *
    * @return the list of values.
@@ -119,6 +123,18 @@ public final class KeyValuePair implements Entry {
          | ((long)expireTime[0] & 0xff) <<  0;
   }
 
+  public Long getMinHashExpireTime() {
+    switch (valueType) {
+      case HASHMAP_WITH_METADATA:
+      case HASHMAP_WITH_METADATA_PRE_GA:
+      case HASHMAP_AS_LISTPACK_EX:
+      case HASHMAP_AS_LISTPACK_EX_PRE_GA:
+        return minHashExpireTime;
+      default:
+        return null;
+    }
+  }
+
   /**
    * Returns the LFU frequency (logarithmic with a 0-255 range) , or null if not set.
    *
@@ -154,6 +170,10 @@ public final class KeyValuePair implements Entry {
       sb.append(" value)");
     } else {
       sb.append(" values)");
+    }
+    if (minHashExpireTime != null) {
+      sb.append(", min hash expire time: ");
+      sb.append(minHashExpireTime);
     }
     return sb.toString();
   }

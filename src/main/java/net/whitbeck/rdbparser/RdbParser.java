@@ -45,6 +45,9 @@ public final class RdbParser implements AutoCloseable {
   private static final int FREQ = 0xf9;
   private static final int IDLE = 0xf8;
   private static final int MODULE_AUX = 0xf7;
+  private static final int FUNCTION_PRE_GA = 0xf6;
+  private static final int FUNCTION2 = 0xf5;
+  private static final int SLOT_INFO = 0xf4;
 
   private static final int BUFFER_SIZE = 8 * 1024;
 
@@ -131,6 +134,18 @@ public final class RdbParser implements AutoCloseable {
     return bs;
   }
 
+  private long readExpirationMillis() throws IOException {
+    byte[] expireTime = readBytes(8);
+    return ((long)expireTime[7] & 0xff) << 56
+         | ((long)expireTime[6] & 0xff) << 48
+         | ((long)expireTime[5] & 0xff) << 40
+         | ((long)expireTime[4] & 0xff) << 32
+         | ((long)expireTime[3] & 0xff) << 24
+         | ((long)expireTime[2] & 0xff) << 16
+         | ((long)expireTime[1] & 0xff) <<  8
+         | ((long)expireTime[0] & 0xff) <<  0;
+  }
+
   private String readMagicNumber() throws IOException {
     return new String(readBytes(5), ASCII);
   }
@@ -145,7 +160,7 @@ public final class RdbParser implements AutoCloseable {
       throw new IllegalStateException("Not a valid redis RDB file");
     }
     version = readVersion();
-    if (version < 1 || version > 11) {
+    if (version < 1 || version > 12) {
       throw new IllegalStateException("Unknown version");
     }
     nextEntry = new KeyValuePair();
@@ -207,6 +222,11 @@ public final class RdbParser implements AutoCloseable {
           continue;
         case MODULE_AUX:
           throw new UnsupportedOperationException("Redis modules are not supported");
+        case FUNCTION_PRE_GA:
+        case FUNCTION2:
+          throw new UnsupportedOperationException("Redis functions are not supported");
+        case SLOT_INFO:
+          throw new UnsupportedOperationException("Redis cluster is not supported");
         default:
           readEntry(valueType);
           KeyValuePair entry = nextEntry;
@@ -421,6 +441,7 @@ public final class RdbParser implements AutoCloseable {
         break;
       case 15: // Stream ListPacks
       case 19: // Stream ListPacks_2
+      case 21: // Stream ListPacks_3
         throw new UnsupportedOperationException("Redis streams are not supported");
       case 16:
         readHashListPack();
@@ -433,6 +454,14 @@ public final class RdbParser implements AutoCloseable {
         break;
       case 20:
         readSetListPack();
+        break;
+      case 22:
+      case 24:
+        readHashMetadata(valueType == 24);
+        break;
+      case 23:
+      case 25:
+        readHashListPackEx(valueType == 25);
         break;
       default:
         throw new UnsupportedOperationException("Unknown value type: " + valueType);
@@ -587,6 +616,45 @@ public final class RdbParser implements AutoCloseable {
     }
     nextEntry.valueType = ValueType.QUICKLIST;
     nextEntry.values = new QuickList(ziplists);
+  }
+
+  private void readHashMetadata(boolean gaType) throws IOException {
+    if (gaType) {
+      nextEntry.valueType = ValueType.HASHMAP_WITH_METADATA;
+      nextEntry.minHashExpireTime = readExpirationMillis();
+    } else {
+      nextEntry.valueType = ValueType.HASHMAP_WITH_METADATA_PRE_GA;
+    }
+    long len = readLength();
+    if (len > (Integer.MAX_VALUE / 3)) {
+      throw new IllegalArgumentException("Hashes with metadata more than "
+                                         + (Integer.MAX_VALUE / 3)
+                                         + " elements are not supported.");
+    }
+    int size = (int)len;
+    List<byte[]> kvxTuples = new ArrayList<byte[]>(3 * size);
+    for (int i = 0; i < size; ++i) {
+      long hashExpiry = readLength();
+      if (hashExpiry > 0) {
+        hashExpiry += nextEntry.getMinHashExpireTime() - 1;
+      }
+      kvxTuples.add(readStringEncoded());
+      kvxTuples.add(readStringEncoded());
+      kvxTuples.add(String.valueOf(hashExpiry).getBytes(ASCII));
+    }
+
+    nextEntry.values = kvxTuples;
+  }
+
+  private void readHashListPackEx(boolean gaType) throws IOException {
+    long baseExpiry;
+    if (gaType) {
+      nextEntry.valueType = ValueType.HASHMAP_AS_LISTPACK_EX;
+      nextEntry.minHashExpireTime = readExpirationMillis();
+    } else {
+      nextEntry.valueType = ValueType.HASHMAP_AS_LISTPACK_EX_PRE_GA;
+    }
+    nextEntry.values = new ListpackList(readStringEncoded());
   }
 
   /**

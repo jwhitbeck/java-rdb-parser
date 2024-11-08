@@ -92,6 +92,7 @@ public class RdbParserTest {
     new RedisServerInstance("6.2.1", 9),
     new RedisServerInstance("7.0.11", 10),
     new RedisServerInstance("7.2.4", 11),
+    new RedisServerInstance("7.4.1", 12),
   };
 
   @BeforeClass
@@ -116,6 +117,10 @@ public class RdbParserTest {
   String redisVersion;
   File dumpFile;
   Jedis jedis;
+
+  // accept 5s difference for absolute timestamp comparisons
+  private static final int EXPIRATION_TOLERANCE_MS = 5000;
+  Map<String, String> originalConfig;
 
   @Parameters
   public static Collection<Object[]> params() {
@@ -185,6 +190,20 @@ public class RdbParserTest {
 
   static boolean isLaterThan(String version, String cmp) {
     return compareVersions(version, cmp) > 0;
+  }
+
+  private void setTestConfig(String key, String value) {
+    if (originalConfig == null) {
+      originalConfig = jedis.configGet("*");
+    }
+    jedis.configSet(key, value);
+  }
+
+  private void restoreConfig(String key) {
+      if (originalConfig == null) {
+        return;
+      }
+      jedis.configSet(key, originalConfig.get(key));
   }
 
   void setTestFile(ByteBuffer buf) throws IOException {
@@ -264,22 +283,28 @@ public class RdbParserTest {
     }
   }
 
-  void skipAuxFields(RdbParser p) throws IOException {
+  void skipAuxFields(RdbParser p) throws Exception {
     // Skip the AUX entries at the beginning of the file.
-    int numEntries = 0;
-    switch (rdbVersion) {
-      case 7:
-        numEntries = 4;
-        break;
-      case 8:
-      case 9:
-      case 10:
-      case 11:
-        numEntries = 5;
-        break;
+    if (rdbVersion < 7) {
+      return;
+    }
+    int numEntries = 4;
+    if (rdbVersion >= 8 && rdbVersion < 10) {
+      numEntries++;
     }
     for (int i = 0; i < numEntries; i++) {
       p.readNext();
+    }
+    if (rdbVersion >= 10) {
+      // Version 12 can have various additional AUX fields depending on the
+      // server configuration, but aof-base is always the last one.
+      while (true) {
+        AuxField aux = (AuxField) p.readNext();
+        String key = str(aux.getKey());
+        if (key.equals("aof-base")) {
+          break;
+        }
+      }
     }
   }
 
@@ -343,7 +368,7 @@ public class RdbParserTest {
     }
   }
 
-  void skipToFirstKeyValuePair(RdbParser p) throws IOException {
+  void skipToFirstKeyValuePair(RdbParser p) throws Exception {
     skipAuxFields(p); // Skip the AUX fields at top of file
     p.readNext(); // Skip the DB SELECTOR entry
     if (rdbVersion >= 7) {
@@ -557,16 +582,16 @@ public class RdbParserTest {
   public void list() throws Exception {
     jedis.flushAll();
     if (rdbVersion >= 10) {
-      jedis.configSet("list-max-listpack-size", "0");
+      setTestConfig("list-max-listpack-size", "0");
     } else if (rdbVersion >= 7) {
-      jedis.configSet("list-max-ziplist-size", "0");
+      setTestConfig("list-max-ziplist-size", "0");
     }
     jedis.lpush("foo", "bar", "1234", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     jedis.save();
     if (rdbVersion >= 10) {
-      jedis.configSet("list-max-listpack-size", "1000");
+      restoreConfig("list-max-listpack-size");
     } else if (rdbVersion >= 7) {
-      jedis.configSet("list-max-ziplist-size", "1000");
+      restoreConfig("list-max-ziplist-size");
     }
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
@@ -591,13 +616,16 @@ public class RdbParserTest {
     Collections.addAll(set, "bar", "1234", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     // Force set to use a non-listpack encoding.
     if (isLaterThan(redisVersion, "7.1.0")) {
-      jedis.configSet("set-max-listpack-value", "5");
+      setTestConfig("set-max-listpack-value", "0");
     }
     jedis.flushAll();
     for (String elem : set) {
       jedis.sadd("foo", elem);
     }
     jedis.save();
+    if (isLaterThan(redisVersion, "7.1.0")) {
+      restoreConfig("set-max-listpack-value");
+    }
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair) p.readNext();
@@ -618,13 +646,12 @@ public class RdbParserTest {
       valueScoreMap.put("bar", Double.POSITIVE_INFINITY);
       valueScoreMap.put("baz", Double.NEGATIVE_INFINITY);
       jedis.flushAll();
-      String origValue = jedis.configGet("zset-max-ziplist-entries").get(1);
-      jedis.configSet("zset-max-ziplist-entries", "0");
+      setTestConfig("zset-max-ziplist-entries", "0");
       for (Map.Entry<String, Double> e : valueScoreMap.entrySet()) {
         jedis.zadd("foo", e.getValue(), e.getKey());
       }
       jedis.save();
-      jedis.configSet("zset-max-ziplist-entries", origValue);
+      restoreConfig("zset-max-ziplist-entries");
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
         KeyValuePair kvp = (KeyValuePair) p.readNext();
@@ -646,13 +673,12 @@ public class RdbParserTest {
       valueScoreMap.put("bar", Double.POSITIVE_INFINITY);
       valueScoreMap.put("baz", Double.NEGATIVE_INFINITY);
       jedis.flushAll();
-      String origValue = jedis.configGet("zset-max-ziplist-entries").get(1);
-      jedis.configSet("zset-max-ziplist-entries", "0");
+      setTestConfig("zset-max-ziplist-entries", "0");
       for (Map.Entry<String, Double> e : valueScoreMap.entrySet()) {
         jedis.zadd("foo", e.getValue(), e.getKey());
       }
       jedis.save();
-      jedis.configSet("zset-max-ziplist-entries", origValue);
+      restoreConfig("zset-max-ziplist-entries");
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
         KeyValuePair kvp = (KeyValuePair) p.readNext();
@@ -670,8 +696,7 @@ public class RdbParserTest {
   public void hash() throws Exception {
     String maxEntriesKey = isEarlierThan(redisVersion, "2.6.0") ? "hash-max-zipmap-entries"
         : "hash-max-ziplist-entries";
-    String origMaxEntriesValue = jedis.configGet(maxEntriesKey).get(1);
-    jedis.configSet(maxEntriesKey, "0");
+    setTestConfig(maxEntriesKey, "0");
     Map<String, String> map = new HashMap<String, String>();
     map.put("one", "loremipsum");
     map.put("two", "2");
@@ -681,7 +706,7 @@ public class RdbParserTest {
       jedis.hset("foo", e.getKey(), e.getValue());
     }
     jedis.save();
-    jedis.configSet(maxEntriesKey, origMaxEntriesValue);
+    restoreConfig(maxEntriesKey);
     try (RdbParser p = openTestParser()) {
       skipToFirstKeyValuePair(p);
       KeyValuePair kvp = (KeyValuePair) p.readNext();
@@ -821,14 +846,22 @@ public class RdbParserTest {
   @Test
   public void sortedSetAsZipList() throws Exception {
     if (rdbVersion <= 9) {
+      setTestConfig("zset-max-ziplist-entries", "64");
+      setTestConfig("zset-max-ziplist-value", "64");
       checkCompactedSortedSet(ValueType.SORTED_SET_AS_ZIPLIST);
+      restoreConfig("zset-max-ziplist-entries");
+      restoreConfig("zset-max-ziplist-value");
     }
   }
 
   @Test
   public void sortedSetAsListpack() throws Exception {
     if (rdbVersion >= 10) {
+      setTestConfig("zset-max-listpack-entries", "64");
+      setTestConfig("zset-max-listpack-value", "64");
       checkCompactedSortedSet(ValueType.SORTED_SET_AS_LISTPACK);
+      restoreConfig("zset-max-listpack-entries");
+      restoreConfig("zset-max-listpack-value");
     }
   }
 
@@ -850,12 +883,15 @@ public class RdbParserTest {
       map.put("three", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
       map.put("four", mediumString);
       map.put("five", longString);
-      jedis.configSet("hash-max-ziplist-value", Integer.toString(longString.length()));
+      setTestConfig("hash-max-ziplist-entries", "64");
+      setTestConfig("hash-max-ziplist-value", Integer.toString(longString.length()));
       jedis.flushAll();
       for (Map.Entry<String, String> e : map.entrySet()) {
         jedis.hset("foo", e.getKey(), e.getValue());
       }
       jedis.save();
+      restoreConfig("hash-max-ziplist-entries");
+      restoreConfig("hash-max-ziplist-value");
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
         KeyValuePair kvp = (KeyValuePair) p.readNext();
@@ -900,12 +936,13 @@ public class RdbParserTest {
       for (int i = 0; i < list.size(); ++i) {
         map.put(Integer.toString(i), list.get(i));
       }
-      jedis.configSet("hash-max-listpack-value", Integer.toString(longString.length()));
+      setTestConfig("hash-max-listpack-value", Integer.toString(longString.length()));
       jedis.flushAll();
       for (Map.Entry<String, String> e : map.entrySet()) {
         jedis.hset("foo", e.getKey(), e.getValue());
       }
       jedis.save();
+      restoreConfig("hash-max-listpack-value");
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
         KeyValuePair kvp = (KeyValuePair) p.readNext();
@@ -975,12 +1012,13 @@ public class RdbParserTest {
       for (int i = 0; i < list.size(); ++i) {
         set.add(list.get(i));
       }
-      jedis.configSet("set-max-listpack-value", Integer.toString(longString.length()));
+      setTestConfig("set-max-listpack-value", Integer.toString(longString.length()));
       jedis.flushAll();
       for (String e : set) {
         jedis.sadd("foo", e);
       }
       jedis.save();
+      restoreConfig("set-max-listpack-value");
       try (RdbParser p = openTestParser()) {
         skipToFirstKeyValuePair(p);
         KeyValuePair kvp = (KeyValuePair) p.readNext();
@@ -995,10 +1033,141 @@ public class RdbParserTest {
   }
 
   @Test
+  public void hashMetadata() throws Exception {
+    if (rdbVersion >= 12) {
+      Map<String, String> map = new HashMap<String, String>();
+      Map<String, Long> expireMap = new HashMap<String, Long>();
+      map.put("one", "loremipsum");
+      map.put("two", "2");
+      map.put("three", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+      long earliestExpire = 86L;
+      long minExpireMS = System.currentTimeMillis() + earliestExpire * 1000;
+      expireMap.put("one", minExpireMS + 1);
+      expireMap.put("two", 0L);
+      expireMap.put("three", minExpireMS + 2000L * 1000 + 1);
+      setTestConfig("hash-max-listpack-value", "0");
+      jedis.flushAll();
+      for (Map.Entry<String, String> e : map.entrySet()) {
+        jedis.hset("foo", e.getKey(), e.getValue());
+        long expireTime = expireMap.get(e.getKey());
+        if (expireTime == 0) {
+          continue;
+        }
+        jedis.hexpire("foo", ((expireTime - minExpireMS - 1) / 1000) + earliestExpire, e.getKey());
+      }
+      jedis.save();
+      restoreConfig("hash-max-listpack-value");
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
+        Assert.assertEquals(ValueType.HASHMAP_WITH_METADATA, kvp.getValueType());
+        Map<String, String> parsedMap = new HashMap<String, String>();
+        Map<String, Long> parsedExpireMap = new HashMap<String, Long>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
+          String key = str(i.next());
+          parsedMap.put(key, str(i.next()));
+          parsedExpireMap.put(key, Long.parseLong(str(i.next())));
+        }
+        Assert.assertTrue("expected minHashExpireTime: " + minExpireMS
+                          + ", actual: " + kvp.getMinHashExpireTime(),
+                          Math.abs(minExpireMS - kvp.getMinHashExpireTime())
+                          <= EXPIRATION_TOLERANCE_MS);
+        Assert.assertEquals(map, parsedMap);
+        for (Map.Entry<String, Long> e : expireMap.entrySet()) {
+          String key = e.getKey();
+          long expected = e.getValue();
+          long actual = parsedExpireMap.get(key);
+          Assert.assertTrue("key: " + key + ", expected: " + expected
+                            + ", actual: " + actual,
+                            Math.abs(expected - actual) <= EXPIRATION_TOLERANCE_MS);
+        }
+      }
+    }
+  }
+
+
+  @Test
+  public void hashmapListpackEx() throws Exception {
+    if (rdbVersion >= 12) {
+      StringBuffer sb = new StringBuffer(16384);
+      for (int i = 0; i < 64; ++i) {
+        sb.append("x");
+      }
+      String mediumString = sb.toString();
+      for (int i = 0; i < 256; ++i) {
+        sb.append(mediumString);
+      }
+      String longString = sb.toString();
+      List<String> list = Arrays.asList("30", // 7 bit integer
+                                        "500", // 13 bit signed integer
+                                        "-30", // 13 bit signed integer
+                                        "16000", // 16 bit integer
+                                        "-16000", // 16 bit signed integer
+                                        "300000", // 24 bit integer
+                                        "-300000", // 24 bit signed integer
+                                        "30000000", // 32 bit integer
+                                        "-30000000", // 32 bit signed integer
+                                        "9000000000", // 64 bit integer
+                                        "-9000000000", // 64 bit signed integer
+                                        "loremipsum", // 6 bit string
+                                        mediumString, // 12 bit string
+                                        longString // 32 bit string
+        );
+      Map<String, String> map = new HashMap<String, String>();
+      Map<String, Long> expireMap = new HashMap<String, Long>();
+      for (int i = 0; i < list.size(); ++i) {
+        map.put(Integer.toString(i), list.get(i));
+      }
+      long earliestExpire = 86L;
+      long minExpireMS = System.currentTimeMillis() + earliestExpire * 1000;
+      setTestConfig("hash-max-listpack-value", Integer.toString(longString.length()));
+      jedis.flushAll();
+      for (Map.Entry<String, String> e : map.entrySet()) {
+        String key = e.getKey();
+        int i = Integer.parseInt(key);
+        jedis.hset("foo", key, e.getValue());
+        if (i % 3 == 0) { // leave some keys without expiration
+          expireMap.put(key, 0L);
+          continue;
+        }
+        expireMap.put(key, minExpireMS + (i * 1000L) + 1);
+        jedis.hexpire("foo", earliestExpire + i, e.getKey());
+      }
+      jedis.save();
+      restoreConfig("hash-max-listpack-value");
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
+        Assert.assertEquals(ValueType.HASHMAP_AS_LISTPACK_EX, kvp.getValueType());
+        Map<String, String> parsedMap = new HashMap<String, String>();
+        Map<String, Long> parsedExpireMap = new HashMap<String, Long>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
+          String key = str(i.next());
+          parsedMap.put(key, str(i.next()));
+          parsedExpireMap.put(key, Long.parseLong(str(i.next())));
+        }
+        Assert.assertTrue("expected minHashExpireTime: " + minExpireMS
+                          + ", actual: " + kvp.getMinHashExpireTime(),
+                          Math.abs(minExpireMS - kvp.getMinHashExpireTime())
+                          <= EXPIRATION_TOLERANCE_MS);
+        Assert.assertEquals(map, parsedMap);
+        for (Map.Entry<String, Long> e : expireMap.entrySet()) {
+          String key = e.getKey();
+          long expected = e.getValue();
+          long actual = parsedExpireMap.get(key);
+          Assert.assertTrue("key: " + key + ", expected: " + expected
+                            + ", actual: " + actual,
+                            Math.abs(expected - actual) <= EXPIRATION_TOLERANCE_MS);
+        }
+      }
+    }
+  }
+
+  @Test
   public void memoryPolicyLRU() throws Exception {
     if (rdbVersion >= 9) {
       jedis.flushAll();
-      jedis.configSet("maxmemory-policy", "allkeys-lru");
+      setTestConfig("maxmemory-policy", "allkeys-lru");
       jedis.set("foo", "bar");
       jedis.save();
       try (RdbParser p = openTestParser()) {
@@ -1008,7 +1177,7 @@ public class RdbParserTest {
         Assert.assertEquals("bar", str(kvp.getValues().get(0)));
         Assert.assertEquals(0L, (long) kvp.getIdle());
       }
-      jedis.configSet("maxmemory-policy", "noeviction");
+      restoreConfig("maxmemory-policy");
     }
   }
 
@@ -1016,7 +1185,7 @@ public class RdbParserTest {
   public void memoryPolicyLFU() throws Exception {
     if (rdbVersion >= 9) {
       jedis.flushAll();
-      jedis.configSet("maxmemory-policy", "allkeys-lfu");
+      setTestConfig("maxmemory-policy", "allkeys-lfu");
       jedis.set("foo", "bar");
       jedis.save();
       try (RdbParser p = openTestParser()) {
@@ -1026,7 +1195,7 @@ public class RdbParserTest {
         Assert.assertEquals("bar", str(kvp.getValues().get(0)));
         Assert.assertEquals(5L, (long) kvp.getFreq());
       }
-      jedis.configSet("maxmemory-policy", "noeviction");
+      restoreConfig("maxmemory-policy");
     }
   }
 }
