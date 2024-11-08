@@ -145,7 +145,7 @@ public final class RdbParser implements AutoCloseable {
       throw new IllegalStateException("Not a valid redis RDB file");
     }
     version = readVersion();
-    if (version < 1 || version > 10) {
+    if (version < 1 || version > 11) {
       throw new IllegalStateException("Unknown version");
     }
     nextEntry = new KeyValuePair();
@@ -431,6 +431,9 @@ public final class RdbParser implements AutoCloseable {
       case 18:
         readQuickList2();
         break;
+      case 20:
+        readSetListPack();
+        break;
       default:
         throw new UnsupportedOperationException("Unknown value type: " + valueType);
     }
@@ -439,6 +442,11 @@ public final class RdbParser implements AutoCloseable {
   private void readZSetListPack() throws IOException {
     nextEntry.valueType = ValueType.SORTED_SET_AS_LISTPACK;
     nextEntry.values = new SortedSetAsListpack(readStringEncoded());
+  }
+
+  private void readSetListPack() throws IOException {
+    nextEntry.valueType = ValueType.SET_AS_LISTPACK;
+    nextEntry.values = new ListpackList(readStringEncoded());
   }
 
   private void readValue() throws IOException {

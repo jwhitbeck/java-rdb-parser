@@ -90,7 +90,8 @@ public class RdbParserTest {
     new RedisServerInstance("4.0.6", 8),
     new RedisServerInstance("5.0.14", 9),
     new RedisServerInstance("6.2.1", 9),
-    new RedisServerInstance("7.0.11", 10)
+    new RedisServerInstance("7.0.11", 10),
+    new RedisServerInstance("7.2.4", 11),
   };
 
   @BeforeClass
@@ -195,7 +196,7 @@ public class RdbParserTest {
 
   @Test
   public void magicNumber() throws Exception {
-    setTestFile(ByteBuffer.wrap(bytes("not a valid redis file")));
+    setTestFile(ByteBuffer.wrap(bytes("not a valid RDB file")));
     try (RdbParser p = openTestParser()) {
       thrown.expect(IllegalStateException.class);
       thrown.expectMessage("Not a valid redis RDB file");
@@ -273,6 +274,7 @@ public class RdbParserTest {
       case 8:
       case 9:
       case 10:
+      case 11:
         numEntries = 5;
         break;
     }
@@ -587,6 +589,10 @@ public class RdbParserTest {
   public void set() throws Exception {
     Set<String> set = new HashSet<String>();
     Collections.addAll(set, "bar", "1234", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    // Force set to use a non-listpack encoding.
+    if (isLaterThan(redisVersion, "7.1.0")) {
+      jedis.configSet("set-max-listpack-value", "5");
+    }
     jedis.flushAll();
     for (String elem : set) {
       jedis.sadd("foo", elem);
@@ -934,6 +940,56 @@ public class RdbParserTest {
           parsedMap.put(str(i.next()), str(i.next()));
         }
         Assert.assertEquals(map, parsedMap);
+      }
+    }
+  }
+
+  @Test
+  public void setAsListpack() throws Exception {
+    if (rdbVersion >= 11) {
+      StringBuffer sb = new StringBuffer(16384);
+      for (int i = 0; i < 64; ++i) {
+        sb.append("x");
+      }
+      String mediumString = sb.toString();
+      for (int i = 0; i < 256; ++i) {
+        sb.append(mediumString);
+      }
+      String longString = sb.toString();
+      List<String> list = Arrays.asList("30", // 7 bit integer
+          "500", // 13 bit signed integer
+          "-30", // 13 bit signed integer
+          "16000", // 16 bit integer
+          "-16000", // 16 bit signed integer
+          "300000", // 24 bit integer
+          "-300000", // 24 bit signed integer
+          "30000000", // 32 bit integer
+          "-30000000", // 32 bit signed integer
+          "9000000000", // 64 bit integer
+          "-9000000000", // 64 bit signed integer
+          "loremipsum", // 6 bit string
+          mediumString, // 12 bit string
+          longString // 32 bit string
+      );
+      Set<String> set = new HashSet<String>();
+      for (int i = 0; i < list.size(); ++i) {
+        set.add(list.get(i));
+      }
+      jedis.configSet("set-max-listpack-value", Integer.toString(longString.length()));
+      jedis.flushAll();
+      for (String e : set) {
+        jedis.sadd("foo", e);
+      }
+      jedis.save();
+      try (RdbParser p = openTestParser()) {
+        skipToFirstKeyValuePair(p);
+        KeyValuePair kvp = (KeyValuePair) p.readNext();
+        Assert.assertEquals(ValueType.SET_AS_LISTPACK, kvp.getValueType());
+        Set<String> parsedSet = new HashSet<String>();
+        for (Iterator<byte[]> i = kvp.getValues().iterator(); i.hasNext();) {
+          parsedSet.add(str(i.next()));
+        }
+        Assert.assertEquals(set, parsedSet);
       }
     }
   }

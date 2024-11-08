@@ -102,5 +102,10 @@ public enum ValueType {
   /**
    * A compact encoding of elements. Replaces ZIPLIST in RDB 10.
    */
-  LISTPACK;
+  LISTPACK,
+
+  /**
+   * A compact encoding for small sets.
+   */
+  SET_AS_LISTPACK;
 }
