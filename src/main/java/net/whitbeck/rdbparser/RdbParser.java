@@ -647,7 +647,6 @@ public final class RdbParser implements AutoCloseable {
   }
 
   private void readHashListPackEx(boolean gaType) throws IOException {
-    long baseExpiry;
     if (gaType) {
       nextEntry.valueType = ValueType.HASHMAP_AS_LISTPACK_EX;
       nextEntry.minHashExpireTime = readExpirationMillis();
