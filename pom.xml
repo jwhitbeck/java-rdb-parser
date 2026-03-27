@@ -73,15 +73,12 @@
   </build>
   <reporting>
     <plugins>
-      <!-- Findbugs check plugin -->
-      <!-- Run with mvn findbugs:check -->
+      <!-- Spotbugs check plugin -->
+      <!-- Run with mvn com.github.spotbugs:spotbugs-maven-plugin:check -->
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.5</version>
-        <configuration>
-          <failOnError>false</failOnError>
-        </configuration>
+	<groupId>com.github.spotbugs</groupId>
+	<artifactId>spotbugs-maven-plugin</artifactId>
+	<version>4.9.8.2</version>
       </plugin>
       <!-- Checkstyle plugin -->
       <!-- Run with mvn checkstyle:check -->
